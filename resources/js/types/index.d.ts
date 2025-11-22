@@ -19,3 +19,9 @@ export interface User {
     updated_at: string;
     [key: string]: unknown; // This allows for additional properties...
 }
+
+export interface Device {
+    category: string;
+    name: string;
+    basedOn: string;
+}
