@@ -20,7 +20,7 @@ import {
     type SortingState,
     useReactTable,
 } from '@tanstack/react-table';
-import { ArrowUpDown, ExternalLink } from 'lucide-react';
+import { ArrowDown, ArrowUp, ArrowUpDown, ExternalLink } from 'lucide-react';
 import { memo, useCallback, useMemo, useRef, useState } from 'react';
 
 interface Props {
@@ -39,10 +39,17 @@ const columns: ColumnDef<Device>[] = [
     {
         accessorKey: 'name',
         header: ({ column }) => {
+            const sorted = column.getIsSorted();
             return (
-                <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-                    <ArrowUpDown className="mr-2 h-4 w-4" />
+                <Button variant="naked" onClick={() => column.toggleSorting(sorted === 'asc')} className="gap-1">
                     Name
+                    {sorted === 'asc' ? (
+                        <ArrowUp className="h-3 w-3 opacity-60" />
+                    ) : sorted === 'desc' ? (
+                        <ArrowDown className="h-3 w-3 opacity-60" />
+                    ) : (
+                        <ArrowUpDown className="h-3 w-3 opacity-30" />
+                    )}
                 </Button>
             );
         },
@@ -51,10 +58,17 @@ const columns: ColumnDef<Device>[] = [
     {
         accessorKey: 'basedOn',
         header: ({ column }) => {
+            const sorted = column.getIsSorted();
             return (
-                <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-                    <ArrowUpDown className="mr-2 h-4 w-4" />
+                <Button variant="naked" onClick={() => column.toggleSorting(sorted === 'asc')} className="gap-1">
                     Based On
+                    {sorted === 'asc' ? (
+                        <ArrowUp className="h-3 w-3 opacity-60" />
+                    ) : sorted === 'desc' ? (
+                        <ArrowDown className="h-3 w-3 opacity-60" />
+                    ) : (
+                        <ArrowUpDown className="h-3 w-3 opacity-30" />
+                    )}
                 </Button>
             );
         },
@@ -113,10 +127,17 @@ const columns: ColumnDef<Device>[] = [
     {
         accessorKey: 'category',
         header: ({ column }) => {
+            const sorted = column.getIsSorted();
             return (
-                <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-                    <ArrowUpDown className="mr-2 h-4 w-4" />
+                <Button variant="naked" onClick={() => column.toggleSorting(sorted === 'asc')} className="gap-1">
                     Category
+                    {sorted === 'asc' ? (
+                        <ArrowUp className="h-3 w-3 opacity-60" />
+                    ) : sorted === 'desc' ? (
+                        <ArrowDown className="h-3 w-3 opacity-60" />
+                    ) : (
+                        <ArrowUpDown className="h-3 w-3 opacity-30" />
+                    )}
                 </Button>
             );
         },
