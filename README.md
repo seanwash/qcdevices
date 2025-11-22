@@ -1,3 +1,4 @@
-## QC Devices
+## Qaud Cortex Device Search
 
-Search for devices by name or category.
+A searchable database of Quad Cortex devices from Neural DSP sourced from the official [device list](https://neuraldsp.com/device-list).
+
