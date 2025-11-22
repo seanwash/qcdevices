@@ -1,10 +1,12 @@
 import { Footer } from '@/components/Footer';
+import { ShortcutBadge } from '@/components/ShortcutBadge';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Typography } from '@/components/ui/typography';
+import { useKeyboardShortcut } from '@/hooks/useKeyboardShortcut';
 import type { Device } from '@/types';
 import { Deferred, Head, usePage } from '@inertiajs/react';
 import {
@@ -17,7 +19,7 @@ import {
     useReactTable,
 } from '@tanstack/react-table';
 import { ArrowUpDown, RotateCcw } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 
 interface Props {
     categories: string[];
@@ -149,6 +151,26 @@ export default function Welcome({ categories }: Props) {
     const [keyword, setKeyword] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
     const [sorting, setSorting] = useState<SortingState>([]);
+    const searchInputRef = useRef<HTMLInputElement>(null);
+
+    useKeyboardShortcut({
+        key: 'k',
+        metaKey: true,
+        callback: () => {
+            searchInputRef.current?.focus();
+            searchInputRef.current?.select();
+        },
+        ignoreWhenFocused: searchInputRef,
+    });
+
+    useKeyboardShortcut({
+        key: 'Escape',
+        callback: () => {
+            if (document.activeElement === searchInputRef.current) {
+                searchInputRef.current?.blur();
+            }
+        },
+    });
 
     const handleReset = () => {
         setKeyword('');
@@ -181,14 +203,18 @@ export default function Welcome({ categories }: Props) {
                         <div className="rounded-lg border border-border/40 bg-card shadow-sm">
                             <div className="border-b border-border/30 p-4">
                                 <div className="flex flex-col gap-3 sm:flex-row">
-                                    <div className="flex-1">
+                                    <div className="relative flex-1">
                                         <Input
+                                            ref={searchInputRef}
                                             type="text"
                                             placeholder="Search by name or based on..."
                                             value={keyword}
                                             onChange={(e) => setKeyword(e.target.value)}
-                                            className="w-full"
+                                            className="w-full pr-16"
                                         />
+                                        <div className="pointer-events-none absolute top-1/2 right-2 flex -translate-y-1/2 items-center">
+                                            <ShortcutBadge keys={['meta', 'k']} />
+                                        </div>
                                     </div>
                                     <div className="w-full sm:w-56">
                                         <Select value={selectedCategory} onValueChange={setSelectedCategory}>
