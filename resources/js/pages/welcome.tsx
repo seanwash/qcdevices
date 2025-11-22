@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Typography } from '@/components/ui/typography';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useKeyboardShortcut } from '@/hooks/useKeyboardShortcut';
@@ -19,7 +20,7 @@ import {
     type SortingState,
     useReactTable,
 } from '@tanstack/react-table';
-import { ArrowUpDown } from 'lucide-react';
+import { ArrowUpDown, ExternalLink } from 'lucide-react';
 import { memo, useCallback, useMemo, useRef, useState } from 'react';
 
 interface Props {
@@ -57,7 +58,57 @@ const columns: ColumnDef<Device>[] = [
                 </Button>
             );
         },
-        cell: ({ row }) => <div>{row.getValue('basedOn')}</div>,
+        cell: ({ row }) => {
+            const basedOnValue = row.getValue('basedOn') as string;
+            const handleGoogleSearch = () => {
+                const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(basedOnValue)}`;
+                window.open(searchUrl, '_blank');
+            };
+
+            const googleUrl = `https://www.google.com/search?q=${encodeURIComponent(basedOnValue)}`;
+            const duckduckgoUrl = `https://duckduckgo.com/?q=${encodeURIComponent(basedOnValue)}`;
+
+            return (
+                <div className="flex items-center gap-2">
+                    <span>{basedOnValue}</span>
+                    {basedOnValue && (
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" onClick={handleGoogleSearch} className="h-6 w-6">
+                                    <ExternalLink className="h-4 w-4" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <div className="flex flex-col gap-1">
+                                    <a
+                                        href={googleUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="hover:underline"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                        }}
+                                    >
+                                        Search on Google
+                                    </a>
+                                    <a
+                                        href={duckduckgoUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="hover:underline"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                        }}
+                                    >
+                                        Search on DuckDuckGo
+                                    </a>
+                                </div>
+                            </TooltipContent>
+                        </Tooltip>
+                    )}
+                </div>
+            );
+        },
     },
     {
         accessorKey: 'category',
@@ -108,7 +159,7 @@ const DeviceTableWrapper = memo(function DeviceTableWrapper({ keyword, selectedC
     });
 
     return (
-        <>
+        <TooltipProvider>
             <Table>
                 <TableHeader>
                     {table.getHeaderGroups().map((headerGroup) => (
@@ -144,7 +195,7 @@ const DeviceTableWrapper = memo(function DeviceTableWrapper({ keyword, selectedC
             <div className="border-t border-border/30 px-4 py-3 text-xs text-muted-foreground">
                 Showing {filteredDevices.length} of {devices.length} devices
             </div>
-        </>
+        </TooltipProvider>
     );
 });
 
