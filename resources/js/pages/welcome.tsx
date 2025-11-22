@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Typography } from '@/components/ui/typography';
+import { useDebounce } from '@/hooks/useDebounce';
 import { useKeyboardShortcut } from '@/hooks/useKeyboardShortcut';
 import type { Device } from '@/types';
 import { Deferred, Head, usePage } from '@inertiajs/react';
@@ -19,7 +20,7 @@ import {
     useReactTable,
 } from '@tanstack/react-table';
 import { ArrowUpDown, RotateCcw } from 'lucide-react';
-import { useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useMemo, useRef, useState } from 'react';
 
 interface Props {
     categories: string[];
@@ -72,18 +73,20 @@ const columns: ColumnDef<Device>[] = [
     },
 ];
 
-function DeviceTableWrapper({ keyword, selectedCategory, sorting, onSortingChange }: DeviceTableWrapperProps) {
+const DeviceTableWrapper = memo(function DeviceTableWrapper({ keyword, selectedCategory, sorting, onSortingChange }: DeviceTableWrapperProps) {
     const { devices = [] } = usePage<{ devices?: Device[] }>().props;
 
     const filteredDevices = useMemo(() => {
         if (!devices || devices.length === 0) {
             return [];
         }
+
+        const lowerKeyword = keyword.toLowerCase();
         return devices.filter((device) => {
             const matchesKeyword =
                 keyword === '' ||
-                device.name.toLowerCase().includes(keyword.toLowerCase()) ||
-                device.basedOn.toLowerCase().includes(keyword.toLowerCase());
+                device.name.toLowerCase().includes(lowerKeyword) ||
+                device.basedOn.toLowerCase().includes(lowerKeyword);
 
             const matchesCategory = selectedCategory === 'all' || device.category === selectedCategory;
 
@@ -145,13 +148,18 @@ function DeviceTableWrapper({ keyword, selectedCategory, sorting, onSortingChang
             </div>
         </>
     );
-}
+});
 
 export default function Welcome({ categories }: Props) {
     const [keyword, setKeyword] = useState('');
+    const debouncedKeyword = useDebounce(keyword, 200);
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
     const [sorting, setSorting] = useState<SortingState>([]);
     const searchInputRef = useRef<HTMLInputElement>(null);
+
+    const handleKeywordChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        setKeyword(e.target.value);
+    }, []);
 
     useKeyboardShortcut({
         key: 'k',
@@ -209,7 +217,7 @@ export default function Welcome({ categories }: Props) {
                                             type="text"
                                             placeholder="Search by name or based on..."
                                             value={keyword}
-                                            onChange={(e) => setKeyword(e.target.value)}
+                                            onChange={handleKeywordChange}
                                             className="w-full pr-16"
                                         />
                                         <div className="pointer-events-none absolute top-1/2 right-2 flex -translate-y-1/2 items-center">
@@ -238,7 +246,7 @@ export default function Welcome({ categories }: Props) {
                                 </div>
                             </div>
                             <DeviceTableWrapper
-                                keyword={keyword}
+                                keyword={debouncedKeyword}
                                 selectedCategory={selectedCategory}
                                 sorting={sorting}
                                 onSortingChange={setSorting}
