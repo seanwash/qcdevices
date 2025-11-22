@@ -105,7 +105,7 @@ function DeviceTableWrapper({ keyword, selectedCategory, sorting, onSortingChang
     });
 
     return (
-        <div className="rounded-lg border border-border/40 bg-card shadow-sm">
+        <>
             <Table>
                 <TableHeader>
                     {table.getHeaderGroups().map((headerGroup) => (
@@ -141,7 +141,7 @@ function DeviceTableWrapper({ keyword, selectedCategory, sorting, onSortingChang
             <div className="border-t border-border/30 px-4 py-3 text-xs text-muted-foreground">
                 Showing {filteredDevices.length} of {devices.length} devices
             </div>
-        </div>
+        </>
     );
 }
 
@@ -158,47 +158,13 @@ export default function Welcome({ categories }: Props) {
 
     return (
         <>
-            <Head title="QC Devices" />
+            <Head title="Search Quad Cortex Devices" />
 
             <div className="min-h-screen bg-background p-8 text-foreground lg:p-12">
                 <div className="mx-auto max-w-7xl">
-                    <div className="mb-10 flex items-start justify-between gap-6">
-                        <div className="space-y-1.5">
-                            <Typography element="h1">QC Devices</Typography>
-                            <Typography modifier="muted">Search Neural DSP Quad Cortex devices</Typography>
-                        </div>
+                    <div className="mb-4 flex items-center justify-between gap-3">
+                        <Typography element="h1">Search devices</Typography>
                         <ThemeToggle />
-                    </div>
-
-                    <div className="mb-8 flex flex-col gap-3 sm:flex-row">
-                        <div className="flex-1">
-                            <Input
-                                type="text"
-                                placeholder="Search by name or based on..."
-                                value={keyword}
-                                onChange={(e) => setKeyword(e.target.value)}
-                                className="w-full"
-                            />
-                        </div>
-                        <div className="w-full sm:w-56">
-                            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Filter by category" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All Categories</SelectItem>
-                                    {categories.map((category) => (
-                                        <SelectItem key={category} value={category}>
-                                            {category}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <Button variant="outline" onClick={handleReset} className="w-full sm:w-auto">
-                            <RotateCcw className="mr-2 h-4 w-4" />
-                            Reset
-                        </Button>
                     </div>
 
                     <Deferred
@@ -212,7 +178,46 @@ export default function Welcome({ categories }: Props) {
                             </div>
                         }
                     >
-                        <DeviceTableWrapper keyword={keyword} selectedCategory={selectedCategory} sorting={sorting} onSortingChange={setSorting} />
+                        <div className="rounded-lg border border-border/40 bg-card shadow-sm">
+                            <div className="border-b border-border/30 p-4">
+                                <div className="flex flex-col gap-3 sm:flex-row">
+                                    <div className="flex-1">
+                                        <Input
+                                            type="text"
+                                            placeholder="Search by name or based on..."
+                                            value={keyword}
+                                            onChange={(e) => setKeyword(e.target.value)}
+                                            className="w-full"
+                                        />
+                                    </div>
+                                    <div className="w-full sm:w-56">
+                                        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Filter by category" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">All Categories</SelectItem>
+                                                {categories.map((category) => (
+                                                    <SelectItem key={category} value={category}>
+                                                        {category}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <Button variant="outline" onClick={handleReset} className="w-full sm:w-auto">
+                                        <RotateCcw className="mr-2 h-4 w-4" />
+                                        Reset
+                                    </Button>
+                                </div>
+                            </div>
+                            <DeviceTableWrapper
+                                keyword={keyword}
+                                selectedCategory={selectedCategory}
+                                sorting={sorting}
+                                onSortingChange={setSorting}
+                            />
+                        </div>
                     </Deferred>
 
                     <Footer />
