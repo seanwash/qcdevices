@@ -19,7 +19,7 @@ import {
     type SortingState,
     useReactTable,
 } from '@tanstack/react-table';
-import { ArrowUpDown, RotateCcw } from 'lucide-react';
+import { ArrowUpDown } from 'lucide-react';
 import { memo, useCallback, useMemo, useRef, useState } from 'react';
 
 interface Props {
@@ -186,17 +186,35 @@ export default function Welcome({ categories }: Props) {
         setSorting([]);
     };
 
+    useKeyboardShortcut({
+        key: 'Backspace',
+        metaKey: true,
+        callback: handleReset,
+        ignoreWhenFocused: searchInputRef,
+    });
+
+    useKeyboardShortcut({
+        key: 'Delete',
+        metaKey: true,
+        callback: handleReset,
+        ignoreWhenFocused: searchInputRef,
+    });
+
     return (
         <>
             <Head title="Search Quad Cortex Devices" />
 
+            <div className="border-b border-border/40 bg-background">
+                <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-3 py-0.5">
+                    <Typography element="h4" className="text-xs font-normal">
+                        Search devices
+                    </Typography>
+                    <ThemeToggle />
+                </div>
+            </div>
+
             <div className="min-h-screen bg-background p-8 text-foreground lg:p-12">
                 <div className="mx-auto max-w-7xl">
-                    <div className="mb-4 flex items-center justify-between gap-3">
-                        <Typography element="h1">Search devices</Typography>
-                        <ThemeToggle />
-                    </div>
-
                     <Deferred
                         data="devices"
                         fallback={
@@ -240,8 +258,8 @@ export default function Welcome({ categories }: Props) {
                                         </Select>
                                     </div>
                                     <Button variant="outline" onClick={handleReset} className="w-full sm:w-auto">
-                                        <RotateCcw className="mr-2 h-4 w-4" />
                                         Reset
+                                        <ShortcutBadge keys={['meta', 'delete']} className="ml-2" />
                                     </Button>
                                 </div>
                             </div>
