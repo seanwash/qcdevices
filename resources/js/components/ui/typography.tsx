@@ -5,14 +5,14 @@ import { cn } from '@/lib/utils';
 const typographyElementVariants = cva('', {
     variants: {
         element: {
-            h1: 'scroll-m-20 text-4xl font-extrabold tracking-tight text-balance',
-            h2: 'scroll-m-20 border-b pb-2 text-3xl font-semibold tracking-tight transition-colors first:mt-0',
-            h3: 'scroll-m-20 text-2xl font-semibold tracking-tight',
-            h4: 'scroll-m-20 text-xl font-semibold tracking-tight',
-            p: 'leading-7 [&:not(:first-child)]:mt-6',
-            blockquote: 'mt-6 border-l-2 pl-6 italic',
-            list: 'my-6 ml-6 list-disc [&>li]:mt-2',
-            'inline-code': 'bg-muted relative rounded px-[0.3rem] py-[0.2rem] font-mono text-sm font-semibold',
+            h1: 'scroll-m-20 text-3xl font-semibold tracking-tight text-balance leading-tight',
+            h2: 'scroll-m-20 border-b border-border/40 pb-2 text-2xl font-semibold tracking-tight transition-colors first:mt-0 leading-tight',
+            h3: 'scroll-m-20 text-xl font-semibold tracking-tight leading-snug',
+            h4: 'scroll-m-20 text-lg font-semibold tracking-tight leading-snug',
+            p: 'leading-7 text-[15px] [&:not(:first-child)]:mt-6',
+            blockquote: 'mt-6 border-l-2 border-border/40 pl-6 italic',
+            list: 'my-6 ml-6 list-disc [&>li]:mt-2 text-[15px]',
+            'inline-code': 'bg-muted/50 relative rounded px-[0.3rem] py-[0.2rem] font-mono text-sm font-medium',
         },
     },
     defaultVariants: {
@@ -23,10 +23,10 @@ const typographyElementVariants = cva('', {
 const typographyModifierVariants = cva('', {
     variants: {
         modifier: {
-            lead: 'text-muted-foreground text-xl',
-            large: 'text-lg font-semibold',
-            small: 'text-sm leading-none font-medium',
-            muted: 'text-muted-foreground text-sm',
+            lead: 'text-muted-foreground text-lg leading-7',
+            large: 'text-base font-medium leading-6',
+            small: 'text-sm leading-5 font-medium',
+            muted: 'text-muted-foreground text-sm leading-6',
         },
     },
 });

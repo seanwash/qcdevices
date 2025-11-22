@@ -16,7 +16,7 @@ import {
     type SortingState,
     useReactTable,
 } from '@tanstack/react-table';
-import { ArrowUpDown } from 'lucide-react';
+import { ArrowUpDown, RotateCcw } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 interface Props {
@@ -27,6 +27,8 @@ interface Props {
 interface DeviceTableWrapperProps {
     keyword: string;
     selectedCategory: string;
+    sorting: SortingState;
+    onSortingChange: (sorting: SortingState) => void;
 }
 
 const columns: ColumnDef<Device>[] = [
@@ -35,8 +37,8 @@ const columns: ColumnDef<Device>[] = [
         header: ({ column }) => {
             return (
                 <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+                    <ArrowUpDown className="mr-2 h-4 w-4" />
                     Name
-                    <ArrowUpDown />
                 </Button>
             );
         },
@@ -47,8 +49,8 @@ const columns: ColumnDef<Device>[] = [
         header: ({ column }) => {
             return (
                 <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+                    <ArrowUpDown className="mr-2 h-4 w-4" />
                     Based On
-                    <ArrowUpDown />
                 </Button>
             );
         },
@@ -59,8 +61,8 @@ const columns: ColumnDef<Device>[] = [
         header: ({ column }) => {
             return (
                 <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+                    <ArrowUpDown className="mr-2 h-4 w-4" />
                     Category
-                    <ArrowUpDown />
                 </Button>
             );
         },
@@ -68,9 +70,8 @@ const columns: ColumnDef<Device>[] = [
     },
 ];
 
-function DeviceTableWrapper({ keyword, selectedCategory }: DeviceTableWrapperProps) {
+function DeviceTableWrapper({ keyword, selectedCategory, sorting, onSortingChange }: DeviceTableWrapperProps) {
     const { devices = [] } = usePage<{ devices?: Device[] }>().props;
-    const [sorting, setSorting] = useState<SortingState>([]);
 
     const filteredDevices = useMemo(() => {
         if (!devices || devices.length === 0) {
@@ -91,7 +92,10 @@ function DeviceTableWrapper({ keyword, selectedCategory }: DeviceTableWrapperPro
     const table = useReactTable({
         data: filteredDevices,
         columns,
-        onSortingChange: setSorting,
+        onSortingChange: (updater) => {
+            const newSorting = typeof updater === 'function' ? updater(sorting) : updater;
+            onSortingChange(newSorting);
+        },
         getCoreRowModel: getCoreRowModel(),
         getSortedRowModel: getSortedRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
@@ -101,7 +105,7 @@ function DeviceTableWrapper({ keyword, selectedCategory }: DeviceTableWrapperPro
     });
 
     return (
-        <div className="rounded-lg border bg-card">
+        <div className="rounded-lg border border-border/40 bg-card shadow-sm">
             <Table>
                 <TableHeader>
                     {table.getHeaderGroups().map((headerGroup) => (
@@ -127,14 +131,14 @@ function DeviceTableWrapper({ keyword, selectedCategory }: DeviceTableWrapperPro
                         ))
                     ) : (
                         <TableRow>
-                            <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
+                            <TableCell colSpan={columns.length} className="h-32 text-center text-muted-foreground">
                                 No devices found matching your filters.
                             </TableCell>
                         </TableRow>
                     )}
                 </TableBody>
             </Table>
-            <div className="border-t p-4 text-sm text-muted-foreground">
+            <div className="border-t border-border/30 px-4 py-3 text-xs text-muted-foreground">
                 Showing {filteredDevices.length} of {devices.length} devices
             </div>
         </div>
@@ -144,22 +148,29 @@ function DeviceTableWrapper({ keyword, selectedCategory }: DeviceTableWrapperPro
 export default function Welcome({ categories }: Props) {
     const [keyword, setKeyword] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
+    const [sorting, setSorting] = useState<SortingState>([]);
+
+    const handleReset = () => {
+        setKeyword('');
+        setSelectedCategory('all');
+        setSorting([]);
+    };
 
     return (
         <>
             <Head title="QC Devices" />
 
-            <div className="min-h-screen bg-background p-6 text-foreground lg:p-8">
+            <div className="min-h-screen bg-background p-8 text-foreground lg:p-12">
                 <div className="mx-auto max-w-7xl">
-                    <div className="mb-8 flex items-start justify-between gap-4">
-                        <div>
+                    <div className="mb-10 flex items-start justify-between gap-6">
+                        <div className="space-y-1.5">
                             <Typography element="h1">QC Devices</Typography>
                             <Typography modifier="muted">Search Neural DSP Quad Cortex devices</Typography>
                         </div>
                         <ThemeToggle />
                     </div>
 
-                    <div className="mb-6 flex flex-col gap-4 sm:flex-row">
+                    <div className="mb-8 flex flex-col gap-3 sm:flex-row">
                         <div className="flex-1">
                             <Input
                                 type="text"
@@ -169,7 +180,7 @@ export default function Welcome({ categories }: Props) {
                                 className="w-full"
                             />
                         </div>
-                        <div className="w-full sm:w-64">
+                        <div className="w-full sm:w-56">
                             <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Filter by category" />
@@ -184,20 +195,24 @@ export default function Welcome({ categories }: Props) {
                                 </SelectContent>
                             </Select>
                         </div>
+                        <Button variant="outline" onClick={handleReset} className="w-full sm:w-auto">
+                            <RotateCcw className="mr-2 h-4 w-4" />
+                            Reset
+                        </Button>
                     </div>
 
                     <Deferred
                         data="devices"
                         fallback={
-                            <div className="rounded-lg border bg-card p-8 text-center">
+                            <div className="rounded-lg border border-border/40 bg-card p-12 text-center shadow-sm">
                                 <div className="space-y-4">
-                                    <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                                    <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
                                     <Typography modifier="muted">Loading devices...</Typography>
                                 </div>
                             </div>
                         }
                     >
-                        <DeviceTableWrapper keyword={keyword} selectedCategory={selectedCategory} />
+                        <DeviceTableWrapper keyword={keyword} selectedCategory={selectedCategory} sorting={sorting} onSortingChange={setSorting} />
                     </Deferred>
 
                     <Footer />
