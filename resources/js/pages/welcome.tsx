@@ -84,9 +84,7 @@ const DeviceTableWrapper = memo(function DeviceTableWrapper({ keyword, selectedC
         const lowerKeyword = keyword.toLowerCase();
         return devices.filter((device) => {
             const matchesKeyword =
-                keyword === '' ||
-                device.name.toLowerCase().includes(lowerKeyword) ||
-                device.basedOn.toLowerCase().includes(lowerKeyword);
+                keyword === '' || device.name.toLowerCase().includes(lowerKeyword) || device.basedOn.toLowerCase().includes(lowerKeyword);
 
             const matchesCategory = selectedCategory === 'all' || device.category === selectedCategory;
 
