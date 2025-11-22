@@ -1,10 +1,22 @@
 import { Footer } from '@/components/Footer';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Typography } from '@/components/ui/typography';
 import type { Device } from '@/types';
 import { Deferred, Head, usePage } from '@inertiajs/react';
+import {
+    type ColumnDef,
+    flexRender,
+    getCoreRowModel,
+    getFilteredRowModel,
+    getSortedRowModel,
+    type SortingState,
+    useReactTable,
+} from '@tanstack/react-table';
+import { ArrowUpDown } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 interface Props {
@@ -17,8 +29,49 @@ interface DeviceTableWrapperProps {
     selectedCategory: string;
 }
 
+const columns: ColumnDef<Device>[] = [
+    {
+        accessorKey: 'name',
+        header: ({ column }) => {
+            return (
+                <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+                    Name
+                    <ArrowUpDown />
+                </Button>
+            );
+        },
+        cell: ({ row }) => <div className="font-medium">{row.getValue('name')}</div>,
+    },
+    {
+        accessorKey: 'basedOn',
+        header: ({ column }) => {
+            return (
+                <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+                    Based On
+                    <ArrowUpDown />
+                </Button>
+            );
+        },
+        cell: ({ row }) => <div>{row.getValue('basedOn')}</div>,
+    },
+    {
+        accessorKey: 'category',
+        header: ({ column }) => {
+            return (
+                <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+                    Category
+                    <ArrowUpDown />
+                </Button>
+            );
+        },
+        cell: ({ row }) => <div>{row.getValue('category')}</div>,
+    },
+];
+
 function DeviceTableWrapper({ keyword, selectedCategory }: DeviceTableWrapperProps) {
     const { devices = [] } = usePage<{ devices?: Device[] }>().props;
+    const [sorting, setSorting] = useState<SortingState>([]);
+
     const filteredDevices = useMemo(() => {
         if (!devices || devices.length === 0) {
             return [];
@@ -35,31 +88,49 @@ function DeviceTableWrapper({ keyword, selectedCategory }: DeviceTableWrapperPro
         });
     }, [devices, keyword, selectedCategory]);
 
+    const table = useReactTable({
+        data: filteredDevices,
+        columns,
+        onSortingChange: setSorting,
+        getCoreRowModel: getCoreRowModel(),
+        getSortedRowModel: getSortedRowModel(),
+        getFilteredRowModel: getFilteredRowModel(),
+        state: {
+            sorting,
+        },
+    });
+
     return (
         <div className="rounded-lg border bg-card">
             <Table>
                 <TableHeader>
-                    <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Based On</TableHead>
-                        <TableHead>Category</TableHead>
-                    </TableRow>
+                    {table.getHeaderGroups().map((headerGroup) => (
+                        <TableRow key={headerGroup.id}>
+                            {headerGroup.headers.map((header) => {
+                                return (
+                                    <TableHead key={header.id}>
+                                        {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                                    </TableHead>
+                                );
+                            })}
+                        </TableRow>
+                    ))}
                 </TableHeader>
                 <TableBody>
-                    {filteredDevices.length === 0 ? (
+                    {table.getRowModel().rows?.length ? (
+                        table.getRowModel().rows.map((row) => (
+                            <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'}>
+                                {row.getVisibleCells().map((cell) => (
+                                    <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+                                ))}
+                            </TableRow>
+                        ))
+                    ) : (
                         <TableRow>
-                            <TableCell colSpan={3} className="text-center text-muted-foreground">
+                            <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
                                 No devices found matching your filters.
                             </TableCell>
                         </TableRow>
-                    ) : (
-                        filteredDevices.map((device, index) => (
-                            <TableRow key={`${device.name}-${index}`}>
-                                <TableCell className="font-medium">{device.name}</TableCell>
-                                <TableCell>{device.basedOn}</TableCell>
-                                <TableCell>{device.category}</TableCell>
-                            </TableRow>
-                        ))
                     )}
                 </TableBody>
             </Table>
@@ -80,9 +151,12 @@ export default function Welcome({ categories }: Props) {
 
             <div className="min-h-screen bg-background p-6 text-foreground lg:p-8">
                 <div className="mx-auto max-w-7xl">
-                    <div className="mb-8">
-                        <Typography element="h1">QC Devices</Typography>
-                        <Typography modifier="muted">Search Neural DSP Quad Cortex devices</Typography>
+                    <div className="mb-8 flex items-start justify-between gap-4">
+                        <div>
+                            <Typography element="h1">QC Devices</Typography>
+                            <Typography modifier="muted">Search Neural DSP Quad Cortex devices</Typography>
+                        </div>
+                        <ThemeToggle />
                     </div>
 
                     <div className="mb-6 flex flex-col gap-4 sm:flex-row">
