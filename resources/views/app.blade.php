@@ -24,6 +24,9 @@
 
         @viteReactRefresh
         @vite(['resources/js/app.tsx', "resources/js/pages/{$page['component']}.tsx"])
+        @if(config('services.umami.website_id'))
+            <script defer src="https://a.seanwash.com/script.js" data-website-id="{{ config('services.umami.website_id') }}"></script>
+        @endif
         @inertiaHead
     </head>
     <body class="font-sans antialiased">
