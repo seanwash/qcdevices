@@ -37,6 +37,25 @@ interface DeviceTableWrapperProps {
 
 const columns: ColumnDef<Device>[] = [
     {
+        accessorKey: 'category',
+        header: ({ column }) => {
+            const sorted = column.getIsSorted();
+            return (
+                <Button variant="naked" onClick={() => column.toggleSorting(sorted === 'asc')} className="gap-1">
+                    Category
+                    {sorted === 'asc' ? (
+                        <ArrowUp className="h-3 w-3 opacity-60" />
+                    ) : sorted === 'desc' ? (
+                        <ArrowDown className="h-3 w-3 opacity-60" />
+                    ) : (
+                        <ArrowUpDown className="h-3 w-3 opacity-30" />
+                    )}
+                </Button>
+            );
+        },
+        cell: ({ row }) => <div className="whitespace-nowrap">{row.getValue('category')}</div>,
+    },
+    {
         accessorKey: 'name',
         header: ({ column }) => {
             const sorted = column.getIsSorted();
@@ -53,7 +72,7 @@ const columns: ColumnDef<Device>[] = [
                 </Button>
             );
         },
-        cell: ({ row }) => <div className="font-medium">{row.getValue('name')}</div>,
+        cell: ({ row }) => <div className="font-medium whitespace-nowrap">{row.getValue('name')}</div>,
     },
     {
         accessorKey: 'basedOn',
@@ -83,12 +102,12 @@ const columns: ColumnDef<Device>[] = [
             const duckduckgoUrl = `https://duckduckgo.com/?q=${encodeURIComponent(basedOnValue)}`;
 
             return (
-                <div className="flex items-center gap-2">
-                    <span>{basedOnValue}</span>
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                    <span className="whitespace-nowrap">{basedOnValue}</span>
                     {basedOnValue && (
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" onClick={handleGoogleSearch} className="h-6 w-6">
+                                <Button variant="ghost" size="icon" onClick={handleGoogleSearch} className="h-6 w-6 shrink-0">
                                     <ExternalLink className="h-4 w-4" />
                                 </Button>
                             </TooltipTrigger>
@@ -123,25 +142,6 @@ const columns: ColumnDef<Device>[] = [
                 </div>
             );
         },
-    },
-    {
-        accessorKey: 'category',
-        header: ({ column }) => {
-            const sorted = column.getIsSorted();
-            return (
-                <Button variant="naked" onClick={() => column.toggleSorting(sorted === 'asc')} className="gap-1">
-                    Category
-                    {sorted === 'asc' ? (
-                        <ArrowUp className="h-3 w-3 opacity-60" />
-                    ) : sorted === 'desc' ? (
-                        <ArrowDown className="h-3 w-3 opacity-60" />
-                    ) : (
-                        <ArrowUpDown className="h-3 w-3 opacity-30" />
-                    )}
-                </Button>
-            );
-        },
-        cell: ({ row }) => <div>{row.getValue('category')}</div>,
     },
 ];
 
@@ -186,8 +186,9 @@ const DeviceTableWrapper = memo(function DeviceTableWrapper({ keyword, selectedC
                     {table.getHeaderGroups().map((headerGroup) => (
                         <TableRow key={headerGroup.id}>
                             {headerGroup.headers.map((header) => {
+                                const meta = header.column.columnDef.meta;
                                 return (
-                                    <TableHead key={header.id}>
+                                    <TableHead key={header.id} className={meta?.className}>
                                         {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                                     </TableHead>
                                 );
@@ -199,9 +200,14 @@ const DeviceTableWrapper = memo(function DeviceTableWrapper({ keyword, selectedC
                     {table.getRowModel().rows?.length ? (
                         table.getRowModel().rows.map((row) => (
                             <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'}>
-                                {row.getVisibleCells().map((cell) => (
-                                    <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
-                                ))}
+                                {row.getVisibleCells().map((cell) => {
+                                    const meta = cell.column.columnDef.meta;
+                                    return (
+                                        <TableCell key={cell.id} className={meta?.className}>
+                                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                        </TableCell>
+                                    );
+                                })}
                             </TableRow>
                         ))
                     ) : (
@@ -213,7 +219,7 @@ const DeviceTableWrapper = memo(function DeviceTableWrapper({ keyword, selectedC
                     )}
                 </TableBody>
             </Table>
-            <div className="border-t border-border/30 px-4 py-3 text-xs text-muted-foreground">
+            <div className="border-t border-border/30 px-3 py-2 text-xs text-muted-foreground sm:px-4 sm:py-3">
                 Showing {filteredDevices.length} of {devices.length} devices
             </div>
         </TooltipProvider>
@@ -275,7 +281,7 @@ export default function Welcome({ categories }: Props) {
             <Head title="Search Quad Cortex Devices" />
 
             <div className="border-b border-border/40 bg-background">
-                <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-3 py-0.5">
+                <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-3 py-1 sm:py-0.5">
                     <Typography element="h4" className="text-xs font-normal">
                         Search devices
                     </Typography>
@@ -283,12 +289,12 @@ export default function Welcome({ categories }: Props) {
                 </div>
             </div>
 
-            <div className="min-h-screen bg-background p-8 text-foreground lg:p-12">
+            <div className="min-h-screen bg-background p-0 text-foreground sm:p-6 lg:p-12">
                 <div className="mx-auto max-w-7xl">
                     <Deferred
                         data="devices"
                         fallback={
-                            <div className="rounded-lg border border-border/40 bg-card p-12 text-center shadow-sm">
+                            <div className="rounded-lg border border-border/40 bg-card p-8 text-center shadow-sm sm:p-12">
                                 <div className="space-y-4">
                                     <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
                                     <Typography modifier="muted">Loading devices...</Typography>
@@ -296,8 +302,8 @@ export default function Welcome({ categories }: Props) {
                             </div>
                         }
                     >
-                        <div className="rounded-lg border border-border/40 bg-card shadow-sm">
-                            <div className="border-b border-border/30 p-4">
+                        <div className="rounded-none border-x-0 border-t-0 border-b border-border/40 bg-card shadow-none sm:rounded-lg sm:border sm:shadow-sm">
+                            <div className="border-b border-border/30 p-3 sm:p-4">
                                 <div className="flex flex-col gap-3 sm:flex-row">
                                     <div className="relative flex-1">
                                         <Input
@@ -306,10 +312,10 @@ export default function Welcome({ categories }: Props) {
                                             placeholder="Search by name or based on..."
                                             value={keyword}
                                             onChange={handleKeywordChange}
-                                            className="w-full pr-16"
+                                            className="w-full pr-12 sm:pr-16"
                                         />
                                         <div className="pointer-events-none absolute top-1/2 right-2 flex -translate-y-1/2 items-center">
-                                            <ShortcutBadge keys={['meta', 'k']} />
+                                            <ShortcutBadge keys={['meta', 'k']} className="hidden sm:inline-flex" />
                                         </div>
                                     </div>
                                     <div className="w-full sm:w-56">
@@ -329,7 +335,7 @@ export default function Welcome({ categories }: Props) {
                                     </div>
                                     <Button variant="outline" onClick={handleReset} className="w-full sm:w-auto">
                                         Reset
-                                        <ShortcutBadge keys={['meta', 'delete']} className="ml-2" />
+                                        <ShortcutBadge keys={['meta', 'delete']} className="ml-2 hidden sm:inline-flex" />
                                     </Button>
                                 </div>
                             </div>
