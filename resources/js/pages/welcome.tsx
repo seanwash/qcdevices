@@ -143,6 +143,25 @@ const columns: ColumnDef<Device>[] = [
             );
         },
     },
+    {
+        accessorKey: 'addedInCorOS',
+        header: ({ column }) => {
+            const sorted = column.getIsSorted();
+            return (
+                <Button variant="naked" onClick={() => column.toggleSorting(sorted === 'asc')} className="gap-1">
+                    Added in CorOS
+                    {sorted === 'asc' ? (
+                        <ArrowUp className="h-3 w-3 opacity-60" />
+                    ) : sorted === 'desc' ? (
+                        <ArrowDown className="h-3 w-3 opacity-60" />
+                    ) : (
+                        <ArrowUpDown className="h-3 w-3 opacity-30" />
+                    )}
+                </Button>
+            );
+        },
+        cell: ({ row }) => <div className="whitespace-nowrap">{row.getValue('addedInCorOS')}</div>,
+    },
 ];
 
 const DeviceTableWrapper = memo(function DeviceTableWrapper({ keyword, selectedCategory, sorting, onSortingChange }: DeviceTableWrapperProps) {

@@ -30,10 +30,11 @@ it('extracts devices with correct structure', function () {
 
     $devices = test()->scraper->scrape();
 
-    expect($devices->first())->toHaveKeys(['category', 'name', 'basedOn']);
+    expect($devices->first())->toHaveKeys(['category', 'name', 'basedOn', 'addedInCorOS']);
     expect($devices->first()['category'])->toBeString();
     expect($devices->first()['name'])->toBeString();
     expect($devices->first()['basedOn'])->toBeString();
+    expect($devices->first()['addedInCorOS'])->toBeString();
 });
 
 it('groups devices by category', function () {
@@ -196,11 +197,13 @@ it('extracts all required device fields', function () {
     $devices = test()->scraper->scrape();
 
     $devices->each(function ($device) {
-        expect($device)->toHaveKeys(['category', 'name', 'basedOn']);
+        expect($device)->toHaveKeys(['category', 'name', 'basedOn', 'addedInCorOS']);
         expect($device['category'])->not->toBeEmpty();
         expect($device['name'])->not->toBeEmpty();
         // basedOn can be empty, but must be a string
         expect($device['basedOn'])->toBeString();
+        // addedInCorOS can be empty, but must be a string
+        expect($device['addedInCorOS'])->toBeString();
     });
 });
 
@@ -336,4 +339,154 @@ it('excludes all announced devices that have not yet been released', function ()
     });
 
     expect($unreleasedDevices)->toBeEmpty();
+});
+
+// CorOS 3.3 Tests - Neural Captures V2 has a different structure with 4 columns
+
+it('extracts Neural Captures V2 devices with proper names (not category labels)', function () {
+    $html = file_get_contents(test()->fixturePath);
+
+    Http::fake([
+        'neuraldsp.com/device-list' => Http::response($html, 200),
+    ]);
+
+    $devices = test()->scraper->scrape();
+
+    $v2Devices = $devices->where('category', 'Neural Captures V2');
+
+    // V2 should have real device names, not category labels like "Guitar amps"
+    $categoryLabels = ['Guitar amps', 'Guitar combo amps', 'Bass amps', 'Compressor', 'Fuzz pedals', 'Guitar overdrive'];
+
+    $hasOnlyCategoryLabels = $v2Devices->every(function ($device) use ($categoryLabels) {
+        return in_array($device['name'], $categoryLabels);
+    });
+
+    expect($hasOnlyCategoryLabels)->toBeFalse('Neural Captures V2 should contain actual device names, not just category labels');
+
+    // Check for specific device names that should exist in V2
+    $expectedDevices = ['Brit 2203 87', 'Dumbbell ODS', 'Chief HM2'];
+
+    foreach ($expectedDevices as $expectedName) {
+        $found = $v2Devices->contains('name', $expectedName);
+        expect($found)->toBeTrue("Expected to find '{$expectedName}' in Neural Captures V2");
+    }
+});
+
+it('extracts Neural Captures V2 devices with basedOn values', function () {
+    $html = file_get_contents(test()->fixturePath);
+
+    Http::fake([
+        'neuraldsp.com/device-list' => Http::response($html, 200),
+    ]);
+
+    $devices = test()->scraper->scrape();
+
+    $v2Devices = $devices->where('category', 'Neural Captures V2');
+
+    // Find a specific device and check its basedOn value
+    $brit220387 = $v2Devices->firstWhere('name', 'Brit 2203 87');
+
+    expect($brit220387)->not->toBeNull('Brit 2203 87 should exist in Neural Captures V2');
+    expect($brit220387['basedOn'])->toBe('Marshall® JCM800® 1987');
+});
+
+it('extracts Synth category with Mono Synth device', function () {
+    $html = file_get_contents(test()->fixturePath);
+
+    Http::fake([
+        'neuraldsp.com/device-list' => Http::response($html, 200),
+    ]);
+
+    $devices = test()->scraper->scrape();
+
+    $synthDevices = $devices->where('category', 'Synth');
+
+    expect($synthDevices)->not->toBeEmpty('Synth category should exist');
+
+    $monoSynth = $synthDevices->firstWhere('name', 'Mono Synth');
+
+    expect($monoSynth)->not->toBeNull('Mono Synth should exist in Synth category');
+});
+
+it('correctly identifies Neural Captures V1 as a separate category from V2', function () {
+    $html = file_get_contents(test()->fixturePath);
+
+    Http::fake([
+        'neuraldsp.com/device-list' => Http::response($html, 200),
+    ]);
+
+    $devices = test()->scraper->scrape();
+
+    $categories = $devices->pluck('category')->unique();
+
+    expect($categories)->toContain('Neural Captures V1');
+    expect($categories)->toContain('Neural Captures V2');
+    expect($categories)->not->toContain('Neural Captures'); // Old category should not exist
+});
+
+// Added in CorOS tests
+
+it('extracts devices with addedInCorOS field', function () {
+    $html = file_get_contents(test()->fixturePath);
+
+    Http::fake([
+        'neuraldsp.com/device-list' => Http::response($html, 200),
+    ]);
+
+    $devices = test()->scraper->scrape();
+
+    expect($devices->first())->toHaveKeys(['category', 'name', 'basedOn', 'addedInCorOS']);
+    expect($devices->first()['addedInCorOS'])->toBeString();
+});
+
+it('extracts addedInCorOS version for Neural Captures V2 devices', function () {
+    $html = file_get_contents(test()->fixturePath);
+
+    Http::fake([
+        'neuraldsp.com/device-list' => Http::response($html, 200),
+    ]);
+
+    $devices = test()->scraper->scrape();
+
+    $v2Devices = $devices->where('category', 'Neural Captures V2');
+
+    // Brit 2203 87 should have addedInCorOS = '3.3.0'
+    $brit220387 = $v2Devices->firstWhere('name', 'Brit 2203 87');
+
+    expect($brit220387)->not->toBeNull('Brit 2203 87 should exist in Neural Captures V2');
+    expect($brit220387['addedInCorOS'])->toBe('3.3.0');
+});
+
+it('extracts addedInCorOS for non-V2 categories', function () {
+    $html = file_get_contents(test()->fixturePath);
+
+    Http::fake([
+        'neuraldsp.com/device-list' => Http::response($html, 200),
+    ]);
+
+    $devices = test()->scraper->scrape();
+
+    // Guitar amps devices should also have addedInCorOS values
+    $guitarAmpDevice = $devices->firstWhere('category', 'Guitar amps');
+
+    expect($guitarAmpDevice)->not->toBeNull();
+    expect($guitarAmpDevice['addedInCorOS'])->toMatch('/^\d+\.\d+(\.\d+)?$/');
+});
+
+it('extracts addedInCorOS for 2-column categories without basedOn', function () {
+    $html = file_get_contents(test()->fixturePath);
+
+    Http::fake([
+        'neuraldsp.com/device-list' => Http::response($html, 200),
+    ]);
+
+    $devices = test()->scraper->scrape();
+
+    // IR loader, Looper, Utility have only Name and Added in CorOS columns
+    $irLoaderDevice = $devices->firstWhere('category', 'IR loader');
+
+    expect($irLoaderDevice)->not->toBeNull();
+    expect($irLoaderDevice['name'])->not->toBeEmpty();
+    expect($irLoaderDevice['basedOn'])->toBeEmpty();
+    expect($irLoaderDevice['addedInCorOS'])->toMatch('/^\d+\.\d+(\.\d+)?$/');
 });

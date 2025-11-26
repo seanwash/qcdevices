@@ -24,4 +24,5 @@ export interface Device {
     category: string;
     name: string;
     basedOn: string;
+    addedInCorOS: string;
 }

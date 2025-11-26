@@ -4,13 +4,25 @@ namespace App\Services;
 
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
+use Symfony\Component\DomCrawler\Crawler;
 
 class DeviceScraper
 {
+    private const SKIP_CATEGORIES = [
+        'Announced devices that have not yet been released',
+    ];
+
+    /** Categories with only Name and Added in CorOS columns (no Based on) */
+    private const TWO_COLUMN_CATEGORIES = [
+        'IR loader',
+        'Looper',
+        'Utility',
+    ];
+
     /**
      * Scrape devices from the Neural DSP device list page.
      *
-     * @return \Illuminate\Support\Collection<int, array{category: string, name: string, basedOn: string}>
+     * @return Collection<int, array{category: string, name: string, basedOn: string, addedInCorOS: string}>
      */
     public function scrape(string $url = 'https://neuraldsp.com/device-list'): Collection
     {
@@ -32,192 +44,106 @@ class DeviceScraper
     /**
      * Extract devices from HTML content.
      *
-     * @return \Illuminate\Support\Collection<int, array{category: string, name: string, basedOn: string}>
+     * @return Collection<int, array{category: string, name: string, basedOn: string, addedInCorOS: string}>
      */
     protected function extractDevices(string $html): Collection
     {
         $devices = collect();
+        $crawler = new Crawler($html);
 
-        // Suppress warnings from DOMDocument for malformed HTML
-        libxml_use_internal_errors(true);
+        $crawler->filter('h2')->each(function (Crawler $heading) use ($devices) {
+            $category = trim($heading->text());
 
-        $dom = new \DOMDocument;
-        @$dom->loadHTML('<?xml encoding="UTF-8">'.$html);
-
-        libxml_clear_errors();
-
-        $xpath = new \DOMXPath($dom);
-
-        // Find all h2 elements (category headings)
-        $headings = $xpath->query('//h2');
-
-        if ($headings === false || $headings->length === 0) {
-            return $devices;
-        }
-
-        foreach ($headings as $heading) {
-            $category = trim($heading->textContent ?? '');
-
-            if (empty($category)) {
-                continue;
+            if (empty($category) || in_array($category, self::SKIP_CATEGORIES)) {
+                return;
             }
 
-            // Skip unreleased devices category entirely
-            if ($category === 'Announced devices that have not yet been released') {
-                continue;
+            $container = $heading->nextAll()->filter('div')->first();
+
+            if ($container->count() === 0) {
+                return;
             }
 
-            // Find the container div that follows this h2
-            $current = $heading->nextSibling;
-
-            while ($current !== null) {
-                if ($current->nodeType === XML_ELEMENT_NODE) {
-                    // Check if this is another h2 (next category)
-                    if ($current->nodeName === 'h2') {
-                        break;
-                    }
-
-                    // Look for div containers
-                    if ($current->nodeName === 'div') {
-                        // Find all divs within this container that have multiple direct child divs
-                        // These represent data rows (each row has multiple cells)
-                        $potentialRows = $xpath->query('.//div[count(./div) >= 2]', $current);
-
-                        if ($potentialRows !== false && $potentialRows->length > 0) {
-                            $headerFound = false;
-                            $nameColumnIndex = 0;
-                            $basedOnColumnIndex = null;
-                            $addedInColumnIndex = null;
-
-                            foreach ($potentialRows as $row) {
-                                // Get all direct child divs (cells) of this row
-                                $cells = $xpath->query('./div', $row);
-
-                                if ($cells === false || $cells->length < 2) {
-                                    continue;
-                                }
-
-                                // Extract text from cells
-                                $cellTexts = [];
-                                foreach ($cells as $cell) {
-                                    $text = trim($cell->textContent ?? '');
-                                    if (! empty($text)) {
-                                        $cellTexts[] = $text;
-                                    }
-                                }
-
-                                // Parse header row to identify column indices
-                                if (! $headerFound && count($cellTexts) >= 2) {
-                                    $firstCell = strtolower(trim($cellTexts[0]));
-                                    $secondCell = strtolower(trim($cellTexts[1] ?? ''));
-
-                                    // Check if this looks like a header row
-                                    $isHeaderRow = ($firstCell === 'name' || $firstCell === 'namei') &&
-                                                  ($secondCell === 'based on' || $secondCell === 'based oni' || str_contains($secondCell, 'based on'));
-
-                                    // Also check for concatenated header text
-                                    $firstCellConcatenated = str_contains($firstCell, 'name') &&
-                                                             (str_contains($firstCell, 'based on') ||
-                                                              str_contains($firstCell, 'added in'));
-
-                                    if ($isHeaderRow || $firstCellConcatenated) {
-                                        $headerFound = true;
-
-                                        // Find column indices by checking all header cells
-                                        foreach ($cellTexts as $index => $headerText) {
-                                            $headerLower = strtolower(trim($headerText));
-
-                                            // Identify Name column (usually first, but check all)
-                                            if (($nameColumnIndex === 0 && $index === 0) ||
-                                                $headerLower === 'name' ||
-                                                $headerLower === 'namei' ||
-                                                str_contains($headerLower, 'name')) {
-                                                $nameColumnIndex = $index;
-                                            }
-
-                                            // Identify Based On column
-                                            if (str_contains($headerLower, 'based on') &&
-                                                ! str_contains($headerLower, 'added in')) {
-                                                $basedOnColumnIndex = $index;
-                                            }
-
-                                            // Identify Added In column
-                                            if (str_contains($headerLower, 'added in') ||
-                                                str_contains($headerLower, 'cor os')) {
-                                                $addedInColumnIndex = $index;
-                                            }
-                                        }
-
-                                        // Fallback: if "Based On" column wasn't found but we have at least 2 columns,
-                                        // assume it's at index 1 (second column)
-                                        if ($basedOnColumnIndex === null && count($cellTexts) >= 2) {
-                                            $basedOnColumnIndex = 1;
-                                        }
-
-                                        continue;
-                                    }
-                                }
-
-                                // Extract device data using column indices
-                                if ($headerFound && count($cellTexts) > $nameColumnIndex && ! empty($cellTexts[$nameColumnIndex])) {
-                                    $name = trim($cellTexts[$nameColumnIndex]);
-                                    $basedOn = '';
-
-                                    // Only extract "Based On" if the column exists and is not the "Added In" column
-                                    if ($basedOnColumnIndex !== null &&
-                                        $basedOnColumnIndex !== $addedInColumnIndex &&
-                                        count($cellTexts) > $basedOnColumnIndex) {
-                                        $basedOnValue = trim($cellTexts[$basedOnColumnIndex] ?? '');
-
-                                        // Check if the value looks like a version number (e.g., "1.0.0", "1.4.0", "3.0.0")
-                                        // Version numbers typically match pattern like X.Y.Z or X.Y
-                                        $isVersionNumber = preg_match('/^\d+\.\d+(\.\d+)?$/', $basedOnValue);
-
-                                        // Also check if this value matches what's in the "Added in" column (if it exists)
-                                        $matchesAddedIn = false;
-                                        if ($addedInColumnIndex !== null && count($cellTexts) > $addedInColumnIndex) {
-                                            $addedInValue = trim($cellTexts[$addedInColumnIndex] ?? '');
-                                            $matchesAddedIn = ($basedOnValue === $addedInValue);
-                                        }
-
-                                        // Only use it if it's not a version number and doesn't match the "Added in" value
-                                        if (! $isVersionNumber && ! $matchesAddedIn && ! empty($basedOnValue)) {
-                                            $basedOn = $basedOnValue;
-                                        }
-                                    }
-
-                                    // Skip if this looks like a header cell
-                                    $nameLower = strtolower($name);
-                                    $isHeaderCell = in_array($nameLower, ['name', 'namei']) ||
-                                                   ($nameLower === 'based on' || $nameLower === 'based oni') ||
-                                                   str_contains($nameLower, 'added in coros');
-
-                                    // Skip invalid device names
-                                    $isInvalidName = $name === 'Device categoryi' ||
-                                                     $name === 'Namei' ||
-                                                     $name === 'Based oni';
-
-                                    if (! empty($name) && ! $isHeaderCell && ! $isInvalidName) {
-                                        $devices->push([
-                                            'category' => $category,
-                                            'name' => $name,
-                                            'basedOn' => $basedOn,
-                                        ]);
-                                    }
-                                }
-                            }
-
-                            if ($devices->isNotEmpty()) {
-                                break; // Found data for this category, move to next heading
-                            }
-                        }
-                    }
-                }
-
-                $current = $current->nextSibling;
-            }
-        }
+            $this->parseTable($container, $category, $devices);
+        });
 
         return $devices;
+    }
+
+    /**
+     * Parse a category table and extract devices.
+     */
+    protected function parseTable(Crawler $container, string $category, Collection $devices): void
+    {
+        // Data rows have class sc-97391185-0
+        $rows = $container->filter('div.sc-97391185-0');
+
+        if ($rows->count() === 0) {
+            return;
+        }
+
+        // Column structure varies by category:
+        // - Neural Captures V2: Device category (0), Name (1), Based on (2), Added in CorOS (3)
+        // - 2-column categories (IR loader, Looper, Utility): Name (0), Added in CorOS (1)
+        // - All others: Name (0), Based on (1), Added in CorOS (2)
+        $isV2 = $category === 'Neural Captures V2';
+        $isTwoColumn = in_array($category, self::TWO_COLUMN_CATEGORIES);
+
+        if ($isV2) {
+            $nameIndex = 1;
+            $basedOnIndex = 2;
+            $addedInCorOSIndex = 3;
+        } elseif ($isTwoColumn) {
+            $nameIndex = 0;
+            $basedOnIndex = null;
+            $addedInCorOSIndex = 1;
+        } else {
+            $nameIndex = 0;
+            $basedOnIndex = 1;
+            $addedInCorOSIndex = 2;
+        }
+
+        $rows->each(function (Crawler $row) use ($category, $devices, $nameIndex, $basedOnIndex, $addedInCorOSIndex) {
+            $cells = $row->filter('div.sc-ec576641-0');
+
+            // Minimum required columns depends on whether category has basedOn
+            $minCols = $basedOnIndex !== null ? $basedOnIndex + 1 : $nameIndex + 1;
+            if ($cells->count() < $minCols) {
+                return;
+            }
+
+            $name = trim($cells->eq($nameIndex)->text());
+
+            if (empty($name)) {
+                return;
+            }
+
+            // Extract basedOn if the category has that column
+            $basedOn = '';
+            if ($basedOnIndex !== null && $cells->count() > $basedOnIndex) {
+                $basedOn = trim($cells->eq($basedOnIndex)->text());
+
+                // Skip version numbers in basedOn (e.g., "1.0.0", "3.3.0")
+                if (preg_match('/^\d+\.\d+(\.\d+)?$/', $basedOn)) {
+                    $basedOn = '';
+                }
+            }
+
+            // Extract addedInCorOS version
+            $addedInCorOS = '';
+            if ($cells->count() > $addedInCorOSIndex) {
+                $version = trim($cells->eq($addedInCorOSIndex)->text());
+                if (preg_match('/^\d+\.\d+(\.\d+)?$/', $version)) {
+                    $addedInCorOS = $version;
+                }
+            }
+
+            $devices->push([
+                'category' => $category,
+                'name' => $name,
+                'basedOn' => $basedOn,
+                'addedInCorOS' => $addedInCorOS,
+            ]);
+        });
     }
 }
