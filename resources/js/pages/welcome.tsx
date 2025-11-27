@@ -312,6 +312,7 @@ const DeviceTableWrapper = memo(function DeviceTableWrapper({ keyword, selectedC
 });
 
 export default function Welcome({ categories }: Props) {
+    const { seo } = usePage<{ seo: { site_name: string; title: string; description: string; og_title: string } }>().props;
     const [keyword, setKeyword] = useState('');
     const debouncedKeyword = useDebounce(keyword, 200);
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -363,7 +364,16 @@ export default function Welcome({ categories }: Props) {
 
     return (
         <>
-            <Head title="Search Quad Cortex Devices" />
+            <Head title={seo.title}>
+                <meta head-key="description" name="description" content={seo.description} />
+                <meta head-key="og:title" property="og:title" content={seo.og_title} />
+                <meta head-key="og:description" property="og:description" content={seo.description} />
+                <meta head-key="og:type" property="og:type" content="website" />
+                <meta head-key="og:site_name" property="og:site_name" content={seo.site_name} />
+                <meta head-key="twitter:card" name="twitter:card" content="summary" />
+                <meta head-key="twitter:title" name="twitter:title" content={seo.title} />
+                <meta head-key="twitter:description" name="twitter:description" content={seo.description} />
+            </Head>
 
             <div className="border-b border-border/40 bg-background">
                 <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-3 py-1 sm:py-0.5">
