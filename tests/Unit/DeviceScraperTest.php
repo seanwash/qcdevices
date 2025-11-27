@@ -490,3 +490,136 @@ it('extracts addedInCorOS for 2-column categories without basedOn', function () 
     expect($irLoaderDevice['basedOn'])->toBeEmpty();
     expect($irLoaderDevice['addedInCorOS'])->toMatch('/^\d+\.\d+(\.\d+)?$/');
 });
+
+it('extracts deviceCategory for Neural Captures V2 devices', function () {
+    $html = file_get_contents(test()->fixturePath);
+
+    Http::fake([
+        'neuraldsp.com/device-list' => Http::response($html, 200),
+    ]);
+
+    $devices = test()->scraper->scrape();
+
+    $v2Devices = $devices->where('category', 'Neural Captures V2');
+
+    // V2 devices should have deviceCategory field
+    $deviceWithCategory = $v2Devices->first(function ($device) {
+        return isset($device['deviceCategory']) && ! empty($device['deviceCategory']);
+    });
+
+    expect($deviceWithCategory)->not->toBeNull('V2 devices should have deviceCategory field');
+    expect($deviceWithCategory['deviceCategory'])->toBeString();
+    expect($deviceWithCategory['deviceCategory'])->not->toBeEmpty();
+});
+
+it('extracts previousName and updatedInCorOS for Neural Captures V1 devices', function () {
+    $html = file_get_contents(test()->fixturePath);
+
+    Http::fake([
+        'neuraldsp.com/device-list' => Http::response($html, 200),
+    ]);
+
+    $devices = test()->scraper->scrape();
+
+    $v1Devices = $devices->where('category', 'Neural Captures V1');
+
+    // Find a V1 device that has previousName or updatedInCorOS
+    $deviceWithMetadata = $v1Devices->first(function ($device) {
+        return (isset($device['previousName']) && ! empty($device['previousName'])) ||
+               (isset($device['updatedInCorOS']) && ! empty($device['updatedInCorOS']));
+    });
+
+    if ($deviceWithMetadata) {
+        if (isset($deviceWithMetadata['previousName'])) {
+            expect($deviceWithMetadata['previousName'])->toBeString();
+        }
+        if (isset($deviceWithMetadata['updatedInCorOS'])) {
+            expect($deviceWithMetadata['updatedInCorOS'])->toMatch('/^\d+\.\d+(\.\d+)?$/');
+        }
+    }
+});
+
+it('only includes deviceCategory for V2 and Plugin devices', function () {
+    $html = file_get_contents(test()->fixturePath);
+
+    Http::fake([
+        'neuraldsp.com/device-list' => Http::response($html, 200),
+    ]);
+
+    $devices = test()->scraper->scrape();
+
+    // Only V2 and Plugin devices should have deviceCategory
+    $categoriesWithDeviceCategory = ['Neural Captures V2', 'Plugin devices'];
+
+    $devicesWithCategory = $devices->filter(function ($device) {
+        return isset($device['deviceCategory']);
+    });
+
+    $invalidDevices = $devicesWithCategory->filter(function ($device) use ($categoriesWithDeviceCategory) {
+        return ! in_array($device['category'], $categoriesWithDeviceCategory);
+    });
+
+    expect($invalidDevices)->toBeEmpty('Only V2 and Plugin devices should have deviceCategory');
+});
+
+it('only includes pluginSource for Plugin devices', function () {
+    $html = file_get_contents(test()->fixturePath);
+
+    Http::fake([
+        'neuraldsp.com/device-list' => Http::response($html, 200),
+    ]);
+
+    $devices = test()->scraper->scrape();
+
+    // Only Plugin devices should have pluginSource
+    $devicesWithPluginSource = $devices->filter(function ($device) {
+        return isset($device['pluginSource']);
+    });
+
+    $invalidDevices = $devicesWithPluginSource->filter(function ($device) {
+        return $device['category'] !== 'Plugin devices';
+    });
+
+    expect($invalidDevices)->toBeEmpty('Only Plugin devices should have pluginSource');
+});
+
+it('extracts previousName and updatedInCorOS for 5-column categories', function () {
+    $html = file_get_contents(test()->fixturePath);
+
+    Http::fake([
+        'neuraldsp.com/device-list' => Http::response($html, 200),
+    ]);
+
+    $devices = test()->scraper->scrape();
+
+    // Categories with 5-column schema can have previousName and updatedInCorOS
+    $categoriesWithExtendedSchema = [
+        'Neural Captures V1',
+        'Guitar amps',
+        'Guitar cabinets',
+        'Guitar overdrive',
+        'Bass amps',
+        'Bass cabinets',
+        'Bass overdrive',
+        'Delay',
+        'Reverb',
+        'Compressor',
+        'Pitch',
+        'Modulation',
+        'Morph',
+        'Filter',
+        'EQ',
+        'Wah',
+        'Synth',
+    ];
+
+    $devicesWithExtendedFields = $devices->filter(function ($device) {
+        return isset($device['previousName']) || isset($device['updatedInCorOS']);
+    });
+
+    $invalidDevices = $devicesWithExtendedFields->filter(function ($device) use ($categoriesWithExtendedSchema) {
+        return ! in_array($device['category'], $categoriesWithExtendedSchema);
+    });
+
+    expect($invalidDevices)->toBeEmpty('Only 5-column categories should have previousName or updatedInCorOS');
+});

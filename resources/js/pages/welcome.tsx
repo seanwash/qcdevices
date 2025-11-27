@@ -53,7 +53,25 @@ const columns: ColumnDef<Device>[] = [
                 </Button>
             );
         },
-        cell: ({ row }) => <div className="whitespace-nowrap">{row.getValue('category')}</div>,
+        accessorFn: (row) => {
+            // For sorting, use deviceCategory if available, otherwise use category
+            return row.deviceCategory || row.category;
+        },
+        cell: ({ row }) => {
+            const category = row.original.category;
+            const deviceCategory = row.original.deviceCategory;
+            const pluginSource = row.original.pluginSource;
+
+            if (category === 'Neural Captures V2' && deviceCategory) {
+                return <div className="whitespace-nowrap">{deviceCategory} (Capture V2)</div>;
+            }
+
+            if (category === 'Plugin devices' && deviceCategory) {
+                return <div className="whitespace-nowrap">{deviceCategory} (Plugin)</div>;
+            }
+
+            return <div className="whitespace-nowrap">{category}</div>;
+        },
     },
     {
         accessorKey: 'name',
@@ -162,6 +180,50 @@ const columns: ColumnDef<Device>[] = [
         },
         cell: ({ row }) => <div className="whitespace-nowrap">{row.getValue('addedInCorOS')}</div>,
     },
+    {
+        accessorKey: 'previousName',
+        header: ({ column }) => {
+            const sorted = column.getIsSorted();
+            return (
+                <Button variant="naked" onClick={() => column.toggleSorting(sorted === 'asc')} className="gap-1">
+                    Previous Name
+                    {sorted === 'asc' ? (
+                        <ArrowUp className="h-3 w-3 opacity-60" />
+                    ) : sorted === 'desc' ? (
+                        <ArrowDown className="h-3 w-3 opacity-60" />
+                    ) : (
+                        <ArrowUpDown className="h-3 w-3 opacity-30" />
+                    )}
+                </Button>
+            );
+        },
+        cell: ({ row }) => {
+            const previousName = row.getValue('previousName') as string | undefined;
+            return <div className="whitespace-nowrap text-muted-foreground">{previousName || '-'}</div>;
+        },
+    },
+    {
+        accessorKey: 'updatedInCorOS',
+        header: ({ column }) => {
+            const sorted = column.getIsSorted();
+            return (
+                <Button variant="naked" onClick={() => column.toggleSorting(sorted === 'asc')} className="gap-1">
+                    Updated in CorOS
+                    {sorted === 'asc' ? (
+                        <ArrowUp className="h-3 w-3 opacity-60" />
+                    ) : sorted === 'desc' ? (
+                        <ArrowDown className="h-3 w-3 opacity-60" />
+                    ) : (
+                        <ArrowUpDown className="h-3 w-3 opacity-30" />
+                    )}
+                </Button>
+            );
+        },
+        cell: ({ row }) => {
+            const updatedInCorOS = row.getValue('updatedInCorOS') as string | undefined;
+            return <div className="whitespace-nowrap text-muted-foreground">{updatedInCorOS || '-'}</div>;
+        },
+    },
 ];
 
 const DeviceTableWrapper = memo(function DeviceTableWrapper({ keyword, selectedCategory, sorting, onSortingChange }: DeviceTableWrapperProps) {
@@ -175,7 +237,11 @@ const DeviceTableWrapper = memo(function DeviceTableWrapper({ keyword, selectedC
         const lowerKeyword = keyword.toLowerCase();
         return devices.filter((device) => {
             const matchesKeyword =
-                keyword === '' || device.name.toLowerCase().includes(lowerKeyword) || device.basedOn.toLowerCase().includes(lowerKeyword);
+                keyword === '' ||
+                device.name.toLowerCase().includes(lowerKeyword) ||
+                device.basedOn.toLowerCase().includes(lowerKeyword) ||
+                (device.deviceCategory?.toLowerCase().includes(lowerKeyword) ?? false) ||
+                (device.previousName?.toLowerCase().includes(lowerKeyword) ?? false);
 
             const matchesCategory = selectedCategory === 'all' || device.category === selectedCategory;
 
@@ -328,7 +394,7 @@ export default function Welcome({ categories }: Props) {
                                         <Input
                                             ref={searchInputRef}
                                             type="text"
-                                            placeholder="Search by name or based on..."
+                                            placeholder="Search by name, based on, device category, or previous name..."
                                             value={keyword}
                                             onChange={handleKeywordChange}
                                             className="w-full pr-12 sm:pr-16"
