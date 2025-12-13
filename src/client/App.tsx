@@ -1,5 +1,6 @@
 import { Footer } from '@/components/Footer';
 import { ShortcutBadge } from '@/components/ShortcutBadge';
+import { SortableColumnHeader } from '@/components/SortableColumnHeader';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,7 +21,7 @@ import {
     type SortingState,
     useReactTable,
 } from '@tanstack/react-table';
-import { ArrowDown, ArrowUp, ArrowUpDown, ExternalLink } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import { memo, useCallback, useMemo, useRef, useState } from 'react';
 
 interface DevicesResponse {
@@ -39,21 +40,7 @@ interface DeviceTableWrapperProps {
 const columns: ColumnDef<Device>[] = [
     {
         accessorKey: 'category',
-        header: ({ column }) => {
-            const sorted = column.getIsSorted();
-            return (
-                <Button variant="naked" onClick={() => column.toggleSorting(sorted === 'asc')} className="gap-1">
-                    Category
-                    {sorted === 'asc' ? (
-                        <ArrowUp className="h-3 w-3 opacity-60" />
-                    ) : sorted === 'desc' ? (
-                        <ArrowDown className="h-3 w-3 opacity-60" />
-                    ) : (
-                        <ArrowUpDown className="h-3 w-3 opacity-30" />
-                    )}
-                </Button>
-            );
-        },
+        header: ({ column }) => <SortableColumnHeader column={column} title="Category" />,
         accessorFn: (row) => {
             // For sorting, use deviceCategory if available, otherwise use category
             return row.deviceCategory || row.category;
@@ -75,40 +62,12 @@ const columns: ColumnDef<Device>[] = [
     },
     {
         accessorKey: 'name',
-        header: ({ column }) => {
-            const sorted = column.getIsSorted();
-            return (
-                <Button variant="naked" onClick={() => column.toggleSorting(sorted === 'asc')} className="gap-1">
-                    Name
-                    {sorted === 'asc' ? (
-                        <ArrowUp className="h-3 w-3 opacity-60" />
-                    ) : sorted === 'desc' ? (
-                        <ArrowDown className="h-3 w-3 opacity-60" />
-                    ) : (
-                        <ArrowUpDown className="h-3 w-3 opacity-30" />
-                    )}
-                </Button>
-            );
-        },
+        header: ({ column }) => <SortableColumnHeader column={column} title="Name" />,
         cell: ({ row }) => <div className="font-medium whitespace-nowrap">{row.getValue('name')}</div>,
     },
     {
         accessorKey: 'basedOn',
-        header: ({ column }) => {
-            const sorted = column.getIsSorted();
-            return (
-                <Button variant="naked" onClick={() => column.toggleSorting(sorted === 'asc')} className="gap-1">
-                    Based On
-                    {sorted === 'asc' ? (
-                        <ArrowUp className="h-3 w-3 opacity-60" />
-                    ) : sorted === 'desc' ? (
-                        <ArrowDown className="h-3 w-3 opacity-60" />
-                    ) : (
-                        <ArrowUpDown className="h-3 w-3 opacity-30" />
-                    )}
-                </Button>
-            );
-        },
+        header: ({ column }) => <SortableColumnHeader column={column} title="Based On" />,
         cell: ({ row }) => {
             const basedOnValue = row.getValue('basedOn') as string;
             const handleGoogleSearch = () => {
@@ -163,40 +122,12 @@ const columns: ColumnDef<Device>[] = [
     },
     {
         accessorKey: 'addedInCorOS',
-        header: ({ column }) => {
-            const sorted = column.getIsSorted();
-            return (
-                <Button variant="naked" onClick={() => column.toggleSorting(sorted === 'asc')} className="gap-1">
-                    Added in CorOS
-                    {sorted === 'asc' ? (
-                        <ArrowUp className="h-3 w-3 opacity-60" />
-                    ) : sorted === 'desc' ? (
-                        <ArrowDown className="h-3 w-3 opacity-60" />
-                    ) : (
-                        <ArrowUpDown className="h-3 w-3 opacity-30" />
-                    )}
-                </Button>
-            );
-        },
+        header: ({ column }) => <SortableColumnHeader column={column} title="Added in CorOS" />,
         cell: ({ row }) => <div className="whitespace-nowrap">{row.getValue('addedInCorOS')}</div>,
     },
     {
         accessorKey: 'previousName',
-        header: ({ column }) => {
-            const sorted = column.getIsSorted();
-            return (
-                <Button variant="naked" onClick={() => column.toggleSorting(sorted === 'asc')} className="gap-1">
-                    Previous Name
-                    {sorted === 'asc' ? (
-                        <ArrowUp className="h-3 w-3 opacity-60" />
-                    ) : sorted === 'desc' ? (
-                        <ArrowDown className="h-3 w-3 opacity-60" />
-                    ) : (
-                        <ArrowUpDown className="h-3 w-3 opacity-30" />
-                    )}
-                </Button>
-            );
-        },
+        header: ({ column }) => <SortableColumnHeader column={column} title="Previous Name" />,
         cell: ({ row }) => {
             const previousName = row.getValue('previousName') as string | undefined;
             return <div className="whitespace-nowrap text-muted-foreground">{previousName || '-'}</div>;
@@ -204,21 +135,7 @@ const columns: ColumnDef<Device>[] = [
     },
     {
         accessorKey: 'updatedInCorOS',
-        header: ({ column }) => {
-            const sorted = column.getIsSorted();
-            return (
-                <Button variant="naked" onClick={() => column.toggleSorting(sorted === 'asc')} className="gap-1">
-                    Updated in CorOS
-                    {sorted === 'asc' ? (
-                        <ArrowUp className="h-3 w-3 opacity-60" />
-                    ) : sorted === 'desc' ? (
-                        <ArrowDown className="h-3 w-3 opacity-60" />
-                    ) : (
-                        <ArrowUpDown className="h-3 w-3 opacity-30" />
-                    )}
-                </Button>
-            );
-        },
+        header: ({ column }) => <SortableColumnHeader column={column} title="Updated in CorOS" />,
         cell: ({ row }) => {
             const updatedInCorOS = row.getValue('updatedInCorOS') as string | undefined;
             return <div className="whitespace-nowrap text-muted-foreground">{updatedInCorOS || '-'}</div>;

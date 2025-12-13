@@ -1,17 +1,7 @@
 import { Hono } from 'hono';
 import { readFileSync } from 'fs';
 import { join } from 'path';
-
-interface Device {
-  category: string;
-  name: string;
-  basedOn: string;
-  addedInCorOS: string;
-  deviceCategory?: string;
-  previousName?: string;
-  updatedInCorOS?: string;
-  pluginSource?: string;
-}
+import type { Device } from '../../shared/types';
 
 const deviceRoutes = new Hono();
 

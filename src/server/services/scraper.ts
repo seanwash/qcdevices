@@ -1,15 +1,7 @@
 import * as cheerio from 'cheerio';
+import type { Device } from '../../shared/types';
 
-export interface Device {
-  category: string;
-  name: string;
-  basedOn: string;
-  addedInCorOS: string;
-  deviceCategory?: string;
-  previousName?: string;
-  updatedInCorOS?: string;
-  pluginSource?: string;
-}
+export type { Device };
 
 type Schema = Record<string, number>;
 

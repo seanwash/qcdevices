@@ -35,6 +35,15 @@ function resolveTheme(theme: Theme): 'light' | 'dark' {
     return theme;
 }
 
+function applyThemeToDocument(resolvedTheme: 'light' | 'dark'): void {
+    const root = document.documentElement;
+    if (resolvedTheme === 'dark') {
+        root.classList.add('dark');
+    } else {
+        root.classList.remove('dark');
+    }
+}
+
 interface ThemeProviderProps {
     children: ReactNode;
 }
@@ -44,15 +53,8 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>(() => resolveTheme(getStoredTheme()));
 
     useEffect(() => {
-        const root = document.documentElement;
         const resolved = resolveTheme(theme);
-
-        if (resolved === 'dark') {
-            root.classList.add('dark');
-        } else {
-            root.classList.remove('dark');
-        }
-
+        applyThemeToDocument(resolved);
         setResolvedTheme(resolved);
     }, [theme]);
 
@@ -64,13 +66,8 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
         const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
         const handleChange = () => {
             const resolved = getSystemTheme();
+            applyThemeToDocument(resolved);
             setResolvedTheme(resolved);
-            const root = document.documentElement;
-            if (resolved === 'dark') {
-                root.classList.add('dark');
-            } else {
-                root.classList.remove('dark');
-            }
         };
 
         mediaQuery.addEventListener('change', handleChange);

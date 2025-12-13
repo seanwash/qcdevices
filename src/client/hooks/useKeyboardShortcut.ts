@@ -1,3 +1,4 @@
+import { isMacOS } from '@/lib/utils';
 import { useEffect, useRef } from 'react';
 
 interface UseKeyboardShortcutOptions {
@@ -83,8 +84,7 @@ export function useKeyboardShortcut({
             }
 
             // Check modifier keys
-            const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-            const metaPressed = isMac ? event.metaKey : event.ctrlKey;
+            const metaPressed = isMacOS() ? event.metaKey : event.ctrlKey;
 
             if (metaKey && !metaPressed) {
                 return;

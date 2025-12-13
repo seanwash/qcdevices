@@ -1,4 +1,4 @@
-import { cn } from '@/lib/utils';
+import { cn, isMacOS } from '@/lib/utils';
 
 interface ShortcutBadgeProps {
     /**
@@ -20,7 +20,7 @@ interface ShortcutBadgeProps {
  * ```
  */
 export function ShortcutBadge({ keys, className }: ShortcutBadgeProps) {
-    const isMac = typeof navigator !== 'undefined' && navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+    const isMac = isMacOS();
 
     const formatKey = (key: string): string => {
         const normalized = key.toLowerCase();
