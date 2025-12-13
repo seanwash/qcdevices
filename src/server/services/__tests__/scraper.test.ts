@@ -1,4 +1,4 @@
-import { describe, it, expect, mock, beforeEach } from 'bun:test';
+import { describe, it, expect, spyOn } from 'bun:test';
 import { scrapeDevices, extractDevices } from '../scraper';
 
 describe('scraper', () => {
@@ -396,10 +396,6 @@ describe('scraper', () => {
   });
 
   describe('scrapeDevices', () => {
-    beforeEach(() => {
-      // Reset fetch mock before each test
-    });
-
     it('should fetch and parse HTML from URL', async () => {
       const mockHtml = `
         <html><body>
@@ -413,56 +409,37 @@ describe('scraper', () => {
         </body></html>
       `;
 
-      const originalFetch = globalThis.fetch;
-      globalThis.fetch = mock(() =>
-        Promise.resolve({
-          ok: true,
-          text: () => Promise.resolve(mockHtml),
-        } as Response)
+      spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+        new Response(mockHtml, { status: 200 })
       );
 
       const devices = await scrapeDevices('https://example.com/devices');
 
       expect(devices).toHaveLength(1);
-
-      globalThis.fetch = originalFetch;
     });
 
     it('should throw error on HTTP error response', async () => {
-      const originalFetch = globalThis.fetch;
-      globalThis.fetch = mock(() =>
-        Promise.resolve({
-          ok: false,
-          status: 404,
-        } as Response)
+      spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+        new Response(null, { status: 404 })
       );
 
       expect(scrapeDevices()).rejects.toThrow('Failed to fetch page: HTTP 404');
-
-      globalThis.fetch = originalFetch;
     });
 
     it('should throw error on empty response', async () => {
-      const originalFetch = globalThis.fetch;
-      globalThis.fetch = mock(() =>
-        Promise.resolve({
-          ok: true,
-          text: () => Promise.resolve(''),
-        } as Response)
+      spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+        new Response('', { status: 200 })
       );
 
       expect(scrapeDevices()).rejects.toThrow('Received empty response from page');
-
-      globalThis.fetch = originalFetch;
     });
 
     it('should handle network errors', async () => {
-      const originalFetch = globalThis.fetch;
-      globalThis.fetch = mock(() => Promise.reject(new Error('Network error')));
+      spyOn(globalThis, 'fetch').mockRejectedValueOnce(
+        new Error('Network error')
+      );
 
       expect(scrapeDevices()).rejects.toThrow('Network error');
-
-      globalThis.fetch = originalFetch;
     });
   });
 });
