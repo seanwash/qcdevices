@@ -1,4 +1,4 @@
-import { scrapeDevices } from "../src/server/services/scraper.js";
+import { scrapeDevices } from "@server/services/scraper.js";
 
 async function main() {
 	console.log("Scraping devices from Neural DSP...");

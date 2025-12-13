@@ -16,7 +16,10 @@
 		"skipLibCheck": true,
 		"baseUrl": ".",
 		"paths": {
-			"@/*": ["./src/client/*"]
+			"@/*": ["./src/client/*"],
+			"@client/*": ["./src/client/*"],
+			"@server/*": ["./src/server/*"],
+			"@shared/*": ["./src/shared/*"]
 		},
 		"types": ["bun-types"]
 	},

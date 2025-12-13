@@ -1,5 +1,5 @@
 import { describe, expect, it, spyOn } from "bun:test";
-import { extractDevices, scrapeDevices } from "../scraper";
+import { extractDevices, scrapeDevices } from "@server/services/scraper";
 
 describe("scraper", () => {
 	describe("extractDevices", () => {

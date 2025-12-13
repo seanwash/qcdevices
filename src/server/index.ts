@@ -1,8 +1,8 @@
+import apiRoutes from "@server/routes/api";
+import { structuredLogger } from "@server/services/structuredLogger";
 import { Hono } from "hono";
 import { serveStatic } from "hono/bun";
 import { cors } from "hono/cors";
-import deviceRoutes from "./routes/devices.js";
-import { structuredLogger } from "./services/logger.js";
 
 const app = new Hono();
 
@@ -10,7 +10,7 @@ app.use("*", structuredLogger);
 app.use("/api/*", cors());
 
 // API routes
-app.route("/api", deviceRoutes);
+app.route("/api", apiRoutes);
 
 // Serve static files from the React build
 app.use("/*", serveStatic({ root: "./dist/client" }));

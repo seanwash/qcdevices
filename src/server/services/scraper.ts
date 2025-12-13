@@ -1,5 +1,5 @@
+import type { Device } from "@shared/types";
 import * as cheerio from "cheerio";
-import type { Device } from "../../shared/types";
 
 export type { Device };
 

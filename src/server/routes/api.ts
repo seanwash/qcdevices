@@ -1,18 +1,16 @@
+import type { Device } from "@shared/types";
 import { Hono } from "hono";
-import type { Device } from "../../shared/types";
 
-const deviceRoutes = new Hono();
+const routes = new Hono();
 
-// Health check endpoint for Railway
-deviceRoutes.get("/health", (c) => {
+routes.get("/health", (c) => {
 	return c.json({
 		status: "ok",
 		timestamp: new Date().toISOString(),
 	});
 });
 
-// Get all devices and categories
-deviceRoutes.get("/devices", async (c) => {
+routes.get("/devices", async (c) => {
 	try {
 		const dataPath = `${process.cwd()}/data/devices.json`;
 		const rawData = await Bun.file(dataPath).text();
@@ -38,4 +36,4 @@ deviceRoutes.get("/devices", async (c) => {
 	}
 });
 
-export default deviceRoutes;
+export default routes;

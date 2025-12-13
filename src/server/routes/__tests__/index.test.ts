@@ -4,10 +4,9 @@ import { Hono } from "hono";
 describe("device routes", () => {
 	describe("GET /api/health", () => {
 		it("should return status ok with timestamp", async () => {
-			// Import fresh for each test
-			const deviceRoutes = (await import("../devices")).default;
+			const routes = (await import("../api")).default;
 			const app = new Hono();
-			app.route("/api", deviceRoutes);
+			app.route("/api", routes);
 
 			const response = await app.request("/api/health");
 			const json = await response.json();
@@ -18,9 +17,9 @@ describe("device routes", () => {
 		});
 
 		it("should return valid ISO timestamp", async () => {
-			const deviceRoutes = (await import("../devices")).default;
+			const routes = (await import("../api")).default;
 			const app = new Hono();
-			app.route("/api", deviceRoutes);
+			app.route("/api", routes);
 
 			const before = new Date().toISOString();
 			const response = await app.request("/api/health");
@@ -34,9 +33,9 @@ describe("device routes", () => {
 
 	describe("GET /api/devices", () => {
 		it("should return devices from the data file", async () => {
-			const deviceRoutes = (await import("../devices")).default;
+			const routes = (await import("../api")).default;
 			const app = new Hono();
-			app.route("/api", deviceRoutes);
+			app.route("/api", routes);
 
 			const response = await app.request("/api/devices");
 			const json = (await response.json()) as {
@@ -50,9 +49,9 @@ describe("device routes", () => {
 		});
 
 		it("should return sorted unique categories", async () => {
-			const deviceRoutes = (await import("../devices")).default;
+			const routes = (await import("../api")).default;
 			const app = new Hono();
-			app.route("/api", deviceRoutes);
+			app.route("/api", routes);
 
 			const response = await app.request("/api/devices");
 			const json = (await response.json()) as { categories: string[] };

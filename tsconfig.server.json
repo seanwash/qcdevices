@@ -12,7 +12,13 @@
 		"noUnusedLocals": true,
 		"noUnusedParameters": true,
 		"noFallthroughCasesInSwitch": true,
-		"skipLibCheck": true
+		"skipLibCheck": true,
+		"baseUrl": ".",
+		"paths": {
+			"@client/*": ["./src/client/*"],
+			"@server/*": ["./src/server/*"],
+			"@shared/*": ["./src/shared/*"]
+		}
 	},
 	"include": ["src/server/**/*", "scripts/**/*", "vite.config.ts"]
 }

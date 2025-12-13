@@ -20,6 +20,9 @@ export default defineConfig({
 	resolve: {
 		alias: {
 			"@": `${import.meta.dirname}/src/client`,
+			"@client": `${import.meta.dirname}/src/client`,
+			"@server": `${import.meta.dirname}/src/server`,
+			"@shared": `${import.meta.dirname}/src/shared`,
 		},
 	},
 	server: {
