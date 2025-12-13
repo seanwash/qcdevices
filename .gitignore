@@ -1,27 +1,23 @@
-/.phpunit.cache
-/bootstrap/ssr
-/node_modules
-/public/build
-/public/hot
-/public/storage
-/resources/js/actions
-/resources/js/routes
-/resources/js/wayfinder
-/storage/*.key
-/storage/pail
-/vendor
+# Dependencies
+node_modules
+
+# Build output
+dist
+
+# Environment
 .env
-.env.backup
+.env.local
 .env.production
-.phpactor.json
-.phpunit.result.cache
-Homestead.json
-Homestead.yaml
-npm-debug.log
-yarn-error.log
-/auth.json
-/.fleet
-/.idea
-/.nova
-/.vscode
-/.zed
+
+# IDE
+.idea
+.vscode
+.zed
+.fleet
+.nova
+
+# Logs
+*.log
+
+# OS
+.DS_Store
