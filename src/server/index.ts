@@ -55,6 +55,13 @@ app.get('*', async (c) => {
 
 const port = parseInt(process.env.PORT || '3000', 10);
 
+// Graceful shutdown handling for Railway deployments
+// https://docs.railway.com/guides/nodejs-sigterm
+process.on('SIGTERM', () => {
+  winstonLogger.info('SIGTERM received, shutting down gracefully');
+  process.exit(0);
+});
+
 console.log(`Server is running on http://localhost:${port}`);
 
 export default {
