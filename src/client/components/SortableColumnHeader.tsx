@@ -1,27 +1,34 @@
-import type { Column } from "@tanstack/react-table";
 import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
+import type { SortDirection, SortKey } from "@/App";
 import { Button } from "@/components/ui/button";
 
-interface SortableColumnHeaderProps<T> {
-	column: Column<T>;
-	title: string;
+interface SortState {
+	key: SortKey | null;
+	direction: SortDirection;
 }
 
-export function SortableColumnHeader<T>({
-	column,
+interface SortableColumnHeaderProps {
+	title: string;
+	sortKey: SortKey;
+	currentSort: SortState;
+	onSort: (key: SortKey) => void;
+}
+
+export function SortableColumnHeader({
 	title,
-}: SortableColumnHeaderProps<T>) {
-	const sorted = column.getIsSorted();
+	sortKey,
+	currentSort,
+	onSort,
+}: SortableColumnHeaderProps) {
+	const isActive = currentSort.key === sortKey;
+	const direction = isActive ? currentSort.direction : null;
+
 	return (
-		<Button
-			variant="naked"
-			onClick={() => column.toggleSorting(sorted === "asc")}
-			className="gap-1"
-		>
+		<Button variant="naked" onClick={() => onSort(sortKey)} className="gap-1">
 			{title}
-			{sorted === "asc" ? (
+			{direction === "asc" ? (
 				<ArrowUp className="h-3 w-3 opacity-60" />
-			) : sorted === "desc" ? (
+			) : direction === "desc" ? (
 				<ArrowDown className="h-3 w-3 opacity-60" />
 			) : (
 				<ArrowUpDown className="h-3 w-3 opacity-30" />

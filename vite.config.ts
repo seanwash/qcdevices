@@ -3,7 +3,14 @@ import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
 export default defineConfig({
-	plugins: [react(), tailwindcss()],
+	plugins: [
+		react({
+			babel: {
+				plugins: [["babel-plugin-react-compiler", { target: "19" }]],
+			},
+		}),
+		tailwindcss(),
+	],
 	root: "src/client",
 	publicDir: "../../public",
 	build: {

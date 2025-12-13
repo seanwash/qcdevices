@@ -1,42 +1,12 @@
-import type { MiddlewareHandler } from "hono";
 import { Hono } from "hono";
 import { serveStatic } from "hono/bun";
 import { cors } from "hono/cors";
-import { logger } from "hono/logger";
-import winston from "winston";
 import deviceRoutes from "./routes/devices.js";
+import { structuredLogger } from "./services/logger.js";
 
 const app = new Hono();
 
-// Winston logger for Railway structured logs
-const winstonLogger = winston.createLogger({
-	level: "info",
-	format: winston.format.json(),
-	transports: [new winston.transports.Console()],
-});
-
-// Request logging middleware
-const requestLogger: MiddlewareHandler = async (c, next) => {
-	const start = Date.now();
-	await next();
-	const duration = Date.now() - start;
-
-	const level =
-		c.res.status >= 500 ? "error" : c.res.status >= 400 ? "warn" : "info";
-
-	winstonLogger.log(level, `${c.req.method} ${c.req.path} ${c.res.status}`, {
-		method: c.req.method,
-		path: c.req.path,
-		status: c.res.status,
-		duration,
-		ip: c.req.header("x-forwarded-for") || c.req.header("x-real-ip"),
-		userAgent: c.req.header("user-agent"),
-	});
-};
-
-// Middleware - use pretty logs in dev, structured JSON in production
-const isDev = process.env.NODE_ENV !== "production";
-app.use("*", isDev ? logger() : requestLogger);
+app.use("*", structuredLogger);
 app.use("/api/*", cors());
 
 // API routes

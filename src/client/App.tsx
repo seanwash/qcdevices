@@ -1,15 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
-import {
-	type ColumnDef,
-	flexRender,
-	getCoreRowModel,
-	getFilteredRowModel,
-	getSortedRowModel,
-	type SortingState,
-	useReactTable,
-} from "@tanstack/react-table";
 import { ExternalLink } from "lucide-react";
-import { memo, useCallback, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Footer } from "@/components/Footer";
 import { ShortcutBadge } from "@/components/ShortcutBadge";
 import { SortableColumnHeader } from "@/components/SortableColumnHeader";
@@ -47,254 +37,202 @@ interface DevicesResponse {
 	categories: string[];
 }
 
+export type SortDirection = "asc" | "desc" | null;
+export type SortKey = keyof Device;
+
+interface SortState {
+	key: SortKey | null;
+	direction: SortDirection;
+}
+
 interface DeviceTableWrapperProps {
 	devices: Device[];
 	keyword: string;
 	selectedCategory: string;
-	sorting: SortingState;
-	onSortingChange: (sorting: SortingState) => void;
+	sorting: SortState;
+	onSortingChange: (sorting: SortState) => void;
 }
 
-const columns: ColumnDef<Device>[] = [
-	{
-		accessorKey: "category",
-		header: ({ column }) => (
-			<SortableColumnHeader column={column} title="Category" />
-		),
-		accessorFn: (row) => {
-			// For sorting, use deviceCategory if available, otherwise use category
-			return row.deviceCategory || row.category;
-		},
-		cell: ({ row }) => {
-			const category = row.original.category;
-			const deviceCategory = row.original.deviceCategory;
+function getCategoryDisplay(device: Device): string {
+	const { category, deviceCategory } = device;
 
-			if (category === "Neural Captures V2" && deviceCategory) {
-				return (
-					<div className="whitespace-nowrap">{deviceCategory} (Capture V2)</div>
-				);
-			}
+	if (category === "Neural Captures V2" && deviceCategory) {
+		return `${deviceCategory} (Capture V2)`;
+	}
 
-			if (category === "Plugin devices" && deviceCategory) {
-				return (
-					<div className="whitespace-nowrap">{deviceCategory} (Plugin)</div>
-				);
-			}
+	if (category === "Plugin devices" && deviceCategory) {
+		return `${deviceCategory} (Plugin)`;
+	}
 
-			return <div className="whitespace-nowrap">{category}</div>;
-		},
-	},
-	{
-		accessorKey: "name",
-		header: ({ column }) => (
-			<SortableColumnHeader column={column} title="Name" />
-		),
-		cell: ({ row }) => (
-			<div className="font-medium whitespace-nowrap">
-				{row.getValue("name")}
-			</div>
-		),
-	},
-	{
-		accessorKey: "basedOn",
-		header: ({ column }) => (
-			<SortableColumnHeader column={column} title="Based On" />
-		),
-		cell: ({ row }) => {
-			const basedOnValue = row.getValue("basedOn") as string;
-			const handleGoogleSearch = () => {
-				const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(basedOnValue)}`;
-				window.open(searchUrl, "_blank");
-			};
+	return category;
+}
 
-			const googleUrl = `https://www.google.com/search?q=${encodeURIComponent(basedOnValue)}`;
-			const duckduckgoUrl = `https://duckduckgo.com/?q=${encodeURIComponent(basedOnValue)}`;
+function getSortValue(device: Device, key: SortKey): string {
+	if (key === "category") {
+		return device.deviceCategory || device.category;
+	}
+	return device[key] ?? "";
+}
 
-			return (
-				<div className="flex items-center gap-1.5 sm:gap-2">
-					<span className="whitespace-nowrap">{basedOnValue}</span>
-					{basedOnValue && (
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<Button
-									variant="ghost"
-									size="icon"
-									onClick={handleGoogleSearch}
-									className="h-6 w-6 shrink-0"
-								>
-									<ExternalLink className="h-4 w-4" />
-								</Button>
-							</TooltipTrigger>
-							<TooltipContent>
-								<div className="flex flex-col gap-1">
-									<a
-										href={googleUrl}
-										target="_blank"
-										rel="noopener noreferrer"
-										className="hover:underline"
-										onClick={(e) => {
-											e.stopPropagation();
-										}}
-									>
-										Search on Google
-									</a>
-									<a
-										href={duckduckgoUrl}
-										target="_blank"
-										rel="noopener noreferrer"
-										className="hover:underline"
-										onClick={(e) => {
-											e.stopPropagation();
-										}}
-									>
-										Search on DuckDuckGo
-									</a>
-								</div>
-							</TooltipContent>
-						</Tooltip>
-					)}
-				</div>
-			);
-		},
-	},
-	{
-		accessorKey: "addedInCorOS",
-		header: ({ column }) => (
-			<SortableColumnHeader column={column} title="Added in CorOS" />
-		),
-		cell: ({ row }) => (
-			<div className="whitespace-nowrap">{row.getValue("addedInCorOS")}</div>
-		),
-	},
-	{
-		accessorKey: "previousName",
-		header: ({ column }) => (
-			<SortableColumnHeader column={column} title="Previous Name" />
-		),
-		cell: ({ row }) => {
-			const previousName = row.getValue("previousName") as string | undefined;
-			return (
-				<div className="whitespace-nowrap text-muted-foreground">
-					{previousName || "-"}
-				</div>
-			);
-		},
-	},
-	{
-		accessorKey: "updatedInCorOS",
-		header: ({ column }) => (
-			<SortableColumnHeader column={column} title="Updated in CorOS" />
-		),
-		cell: ({ row }) => {
-			const updatedInCorOS = row.getValue("updatedInCorOS") as
-				| string
-				| undefined;
-			return (
-				<div className="whitespace-nowrap text-muted-foreground">
-					{updatedInCorOS || "-"}
-				</div>
-			);
-		},
-	},
-];
+function getFilteredAndSortedDevices(
+	devices: Device[],
+	keyword: string,
+	selectedCategory: string,
+	sorting: SortState,
+): Device[] {
+	if (!devices || devices.length === 0) {
+		return [];
+	}
 
-const DeviceTableWrapper = memo(function DeviceTableWrapper({
+	const lowerKeyword = keyword.toLowerCase();
+	let filtered = devices.filter((device) => {
+		const matchesKeyword =
+			keyword === "" ||
+			device.name.toLowerCase().includes(lowerKeyword) ||
+			device.basedOn.toLowerCase().includes(lowerKeyword) ||
+			(device.deviceCategory?.toLowerCase().includes(lowerKeyword) ?? false) ||
+			(device.previousName?.toLowerCase().includes(lowerKeyword) ?? false);
+
+		const matchesCategory =
+			selectedCategory === "all" || device.category === selectedCategory;
+
+		return matchesKeyword && matchesCategory;
+	});
+
+	if (sorting.key && sorting.direction) {
+		const { key, direction } = sorting;
+		filtered = [...filtered].sort((a, b) => {
+			const aVal = getSortValue(a, key);
+			const bVal = getSortValue(b, key);
+			const cmp = aVal.localeCompare(bVal);
+			return direction === "asc" ? cmp : -cmp;
+		});
+	}
+
+	return filtered;
+}
+
+function DeviceTableWrapper({
 	devices,
 	keyword,
 	selectedCategory,
 	sorting,
 	onSortingChange,
 }: DeviceTableWrapperProps) {
-	const filteredDevices = useMemo(() => {
-		if (!devices || devices.length === 0) {
-			return [];
-		}
+	const toggleSort = (key: SortKey) => {
+		onSortingChange(
+			sorting.key === key
+				? {
+						key,
+						direction:
+							sorting.direction === "asc"
+								? "desc"
+								: sorting.direction === "desc"
+									? null
+									: "asc",
+					}
+				: { key, direction: "asc" },
+		);
+	};
 
-		const lowerKeyword = keyword.toLowerCase();
-		return devices.filter((device) => {
-			const matchesKeyword =
-				keyword === "" ||
-				device.name.toLowerCase().includes(lowerKeyword) ||
-				device.basedOn.toLowerCase().includes(lowerKeyword) ||
-				(device.deviceCategory?.toLowerCase().includes(lowerKeyword) ??
-					false) ||
-				(device.previousName?.toLowerCase().includes(lowerKeyword) ?? false);
-
-			const matchesCategory =
-				selectedCategory === "all" || device.category === selectedCategory;
-
-			return matchesKeyword && matchesCategory;
-		});
-	}, [devices, keyword, selectedCategory]);
-
-	const table = useReactTable({
-		data: filteredDevices,
-		columns,
-		onSortingChange: (updater) => {
-			const newSorting =
-				typeof updater === "function" ? updater(sorting) : updater;
-			onSortingChange(newSorting);
-		},
-		getCoreRowModel: getCoreRowModel(),
-		getSortedRowModel: getSortedRowModel(),
-		getFilteredRowModel: getFilteredRowModel(),
-		state: {
-			sorting,
-		},
-	});
+	const filteredAndSortedDevices = getFilteredAndSortedDevices(
+		devices,
+		keyword,
+		selectedCategory,
+		sorting,
+	);
 
 	return (
 		<TooltipProvider>
 			<Table>
 				<TableHeader>
-					{table.getHeaderGroups().map((headerGroup) => (
-						<TableRow key={headerGroup.id}>
-							{headerGroup.headers.map((header) => {
-								const meta = header.column.columnDef.meta;
-								return (
-									<TableHead
-										key={header.id}
-										className={(meta as { className?: string })?.className}
-									>
-										{header.isPlaceholder
-											? null
-											: flexRender(
-													header.column.columnDef.header,
-													header.getContext(),
-												)}
-									</TableHead>
-								);
-							})}
-						</TableRow>
-					))}
+					<TableRow>
+						<TableHead>
+							<SortableColumnHeader
+								title="Category"
+								sortKey="category"
+								currentSort={sorting}
+								onSort={toggleSort}
+							/>
+						</TableHead>
+						<TableHead>
+							<SortableColumnHeader
+								title="Name"
+								sortKey="name"
+								currentSort={sorting}
+								onSort={toggleSort}
+							/>
+						</TableHead>
+						<TableHead>
+							<SortableColumnHeader
+								title="Based On"
+								sortKey="basedOn"
+								currentSort={sorting}
+								onSort={toggleSort}
+							/>
+						</TableHead>
+						<TableHead>
+							<SortableColumnHeader
+								title="Added in CorOS"
+								sortKey="addedInCorOS"
+								currentSort={sorting}
+								onSort={toggleSort}
+							/>
+						</TableHead>
+						<TableHead>
+							<SortableColumnHeader
+								title="Previous Name"
+								sortKey="previousName"
+								currentSort={sorting}
+								onSort={toggleSort}
+							/>
+						</TableHead>
+						<TableHead>
+							<SortableColumnHeader
+								title="Updated in CorOS"
+								sortKey="updatedInCorOS"
+								currentSort={sorting}
+								onSort={toggleSort}
+							/>
+						</TableHead>
+					</TableRow>
 				</TableHeader>
 				<TableBody>
-					{table.getRowModel().rows?.length ? (
-						table.getRowModel().rows.map((row) => (
-							<TableRow
-								key={row.id}
-								data-state={row.getIsSelected() && "selected"}
-							>
-								{row.getVisibleCells().map((cell) => {
-									const meta = cell.column.columnDef.meta;
-									return (
-										<TableCell
-											key={cell.id}
-											className={(meta as { className?: string })?.className}
-										>
-											{flexRender(
-												cell.column.columnDef.cell,
-												cell.getContext(),
-											)}
-										</TableCell>
-									);
-								})}
+					{filteredAndSortedDevices.length > 0 ? (
+						filteredAndSortedDevices.map((device, index) => (
+							<TableRow key={`${device.category}-${device.name}-${index}`}>
+								<TableCell>
+									<div className="whitespace-nowrap">
+										{getCategoryDisplay(device)}
+									</div>
+								</TableCell>
+								<TableCell>
+									<div className="font-medium whitespace-nowrap">
+										{device.name}
+									</div>
+								</TableCell>
+								<TableCell>
+									<BasedOnCell basedOn={device.basedOn} />
+								</TableCell>
+								<TableCell>
+									<div className="whitespace-nowrap">{device.addedInCorOS}</div>
+								</TableCell>
+								<TableCell>
+									<div className="whitespace-nowrap text-muted-foreground">
+										{device.previousName || "-"}
+									</div>
+								</TableCell>
+								<TableCell>
+									<div className="whitespace-nowrap text-muted-foreground">
+										{device.updatedInCorOS || "-"}
+									</div>
+								</TableCell>
 							</TableRow>
 						))
 					) : (
 						<TableRow>
 							<TableCell
-								colSpan={columns.length}
+								colSpan={6}
 								className="h-32 text-center text-muted-foreground"
 							>
 								No devices found matching your filters.
@@ -304,36 +242,96 @@ const DeviceTableWrapper = memo(function DeviceTableWrapper({
 				</TableBody>
 			</Table>
 			<div className="border-t border-border/30 px-3 py-2 text-xs text-muted-foreground sm:px-4 sm:py-3">
-				Showing {filteredDevices.length} of {devices.length} devices
+				Showing {filteredAndSortedDevices.length} of {devices.length} devices
 			</div>
 		</TooltipProvider>
 	);
-});
+}
+
+function BasedOnCell({ basedOn }: { basedOn: string }) {
+	const handleGoogleSearch = () => {
+		window.open(
+			`https://www.google.com/search?q=${encodeURIComponent(basedOn)}`,
+			"_blank",
+		);
+	};
+
+	const googleUrl = `https://www.google.com/search?q=${encodeURIComponent(basedOn)}`;
+	const duckduckgoUrl = `https://duckduckgo.com/?q=${encodeURIComponent(basedOn)}`;
+
+	return (
+		<div className="flex items-center gap-1.5 sm:gap-2">
+			<span className="whitespace-nowrap">{basedOn}</span>
+			{basedOn && (
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Button
+							variant="ghost"
+							size="icon"
+							onClick={handleGoogleSearch}
+							className="h-6 w-6 shrink-0"
+						>
+							<ExternalLink className="h-4 w-4" />
+						</Button>
+					</TooltipTrigger>
+					<TooltipContent>
+						<div className="flex flex-col gap-1">
+							<a
+								href={googleUrl}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="hover:underline"
+								onClick={(e) => e.stopPropagation()}
+							>
+								Search on Google
+							</a>
+							<a
+								href={duckduckgoUrl}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="hover:underline"
+								onClick={(e) => e.stopPropagation()}
+							>
+								Search on DuckDuckGo
+							</a>
+						</div>
+					</TooltipContent>
+				</Tooltip>
+			)}
+		</div>
+	);
+}
 
 export default function App() {
-	const { data, isLoading, error } = useQuery<DevicesResponse>({
-		queryKey: ["devices"],
-		queryFn: async () => {
-			const response = await fetch("/api/devices");
-			if (!response.ok) {
-				throw new Error("Failed to fetch devices");
-			}
-			return response.json();
-		},
-	});
+	const [data, setData] = useState<DevicesResponse | null>(null);
+	const [isLoading, setIsLoading] = useState(true);
+	const [error, setError] = useState<Error | null>(null);
+
+	useEffect(() => {
+		fetch("/api/devices")
+			.then((response) => {
+				if (!response.ok) {
+					throw new Error("Failed to fetch devices");
+				}
+				return response.json();
+			})
+			.then(setData)
+			.catch(setError)
+			.finally(() => setIsLoading(false));
+	}, []);
 
 	const [keyword, setKeyword] = useState("");
 	const debouncedKeyword = useDebounce(keyword, 200);
 	const [selectedCategory, setSelectedCategory] = useState<string>("all");
-	const [sorting, setSorting] = useState<SortingState>([]);
+	const [sorting, setSorting] = useState<SortState>({
+		key: null,
+		direction: null,
+	});
 	const searchInputRef = useRef<HTMLInputElement>(null);
 
-	const handleKeywordChange = useCallback(
-		(e: React.ChangeEvent<HTMLInputElement>) => {
-			setKeyword(e.target.value);
-		},
-		[],
-	);
+	const handleKeywordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		setKeyword(e.target.value);
+	};
 
 	useKeyboardShortcut({
 		key: "k",
@@ -357,7 +355,7 @@ export default function App() {
 	const handleReset = () => {
 		setKeyword("");
 		setSelectedCategory("all");
-		setSorting([]);
+		setSorting({ key: null, direction: null });
 	};
 
 	useKeyboardShortcut({
